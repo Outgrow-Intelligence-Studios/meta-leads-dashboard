@@ -12,8 +12,11 @@ export type Lead = {
 
 const STORAGE_KEY = 'meta_leads_apps_script_url'
 
+// Default Apps Script URL - update this if your deployment URL changes
+const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbxRXgKzakSG81tw01nw7pRI6hmgCgaJiMFEGmLM0n-aaxl32gsrMkIYl_n0MCn2_XTx/exec'
+
 export function getScriptUrl(): string {
-  return localStorage.getItem(STORAGE_KEY) || ''
+  return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL
 }
 
 export function setScriptUrl(url: string) {
@@ -21,14 +24,22 @@ export function setScriptUrl(url: string) {
 }
 
 async function request(endpoint: string, options?: RequestInit): Promise<Record<string, unknown>> {
-  const res = await fetch(endpoint, {
-    redirect: 'follow',
-    ...options,
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const data = await res.json()
-  if (data.status !== 'success') throw new Error(String(data.message || 'Request failed'))
-  return data
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 15000)
+
+  try {
+    const res = await fetch(endpoint, {
+      redirect: 'follow',
+      signal: controller.signal,
+      ...options,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    if (data.status !== 'success') throw new Error(String(data.message || 'Request failed'))
+    return data
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function parseLeads(raw: Array<Record<string, unknown>>): Lead[] {

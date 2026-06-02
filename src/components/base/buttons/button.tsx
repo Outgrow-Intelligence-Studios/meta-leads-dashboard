@@ -1,4 +1,5 @@
 import type { FC, ReactElement, ReactNode } from "react";
+// @ts-expect-error - React import needed for JSX type inference
 import React, { isValidElement } from "react";
 import type { ButtonProps as AriaButtonProps, LinkProps as AriaLinkProps } from "react-aria-components";
 import { Button as AriaButton, Link as AriaLink } from "react-aria-components";

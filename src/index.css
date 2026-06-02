@@ -3,6 +3,150 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* Background colors - dark theme (tiered black tones for depth) */
+  --color-primary: #0a0a0a;
+  --color-primary_hover: #1a1a1a;
+  --color-primary_alt: #050505;
+  --color-primary-solid: #ffffff;
+  --color-secondary: #141414;
+  --color-secondary_hover: #1f1f1f;
+  --color-secondary_alt: #1a1a1a;
+  --color-secondary-solid: #262626;
+  --color-tertiary: #1f1f1f;
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-border-secondary: #1f1f1f;
+  --color-border-primary: #2a2a2a;
+  --color-bg-primary-solid: #141414;
+
+  /* Tiered surface tones (deepest → most elevated) */
+  --color-surface-deepest: #000000;
+  --color-surface-deep: #0a0a0a;
+  --color-surface-base: #141414;
+  --color-surface-raised: #1a1a1a;
+  --color-surface-overlay: #1f1f1f;
+
+  /* Text colors - separate from bg colors */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #e5e5e5;
+  --color-text-secondary_hover: #ffffff;
+  --color-text-tertiary: #a3a3a3;
+  --color-text-tertiary_hover: #cccccc;
+  --color-text-quaternary: #666666;
+  --color-text-placeholder: #555555;
+  --color-text-display-xs: #ffffff;
+  --color-text-tooltip: #ffffff;
+  --color-text-featured: #ffffff;
+  --color-text-neutral-500: #a3a3a3;
+
+  /* Foreground (icon) colors */
+  --color-fg-quaternary: #555555;
+  --color-fg-quaternary_hover: #888888;
+  --color-fg-secondary: #e5e5e5;
+  --color-fg-secondary_hover: #ffffff;
+  --color-fg-white: #ffffff;
+  --color-fg-brand-primary: #ef4444;
+  --color-fg-brand-secondary: #f87171;
+  --color-fg-brand-secondary_alt: #fca5a5;
+  --color-fg-error-primary: #ef4444;
+  --color-fg-error-secondary: #f87171;
+  --color-fg-success-primary: #22c55e;
+  --color-fg-success-secondary: #4ade80;
+  --color-fg-warning-primary: #f59e0b;
+
+  /* Brand colors - RED accent */
+  --color-brand: #ef4444;
+  --color-brand-solid: #dc2626;
+  --color-brand-solid_hover: #b91c1c;
+  --color-brand-secondary: rgba(239, 68, 68, 0.1);
+  --color-brand-primary_alt: #f87171;
+  --color-brand-50: rgba(239, 68, 68, 0.05);
+  --color-brand-secondary_alt: #fca5a5;
+
+  /* Error colors */
+  --color-error: #ef4444;
+  --color-error-solid: #dc2626;
+  --color-error-solid_hover: #b91c1c;
+  --color-error-primary: rgba(239, 68, 68, 0.1);
+  --color-error-secondary: rgba(239, 68, 68, 0.05);
+  --color-error-subtle: rgba(239, 68, 68, 0.3);
+
+  /* Success colors */
+  --color-success: #22c55e;
+  --color-success-solid: #16a34a;
+  --color-success-secondary: rgba(34, 197, 94, 0.1);
+
+  /* Warning colors */
+  --color-warning: #f59e0b;
+  --color-warning-solid: #d97706;
+  --color-warning-secondary: rgba(245, 158, 11, 0.1);
+
+  /* Focus ring */
+  --color-focus-ring: #ef4444;
+
+  /* Alpha black for overlays */
+  --color-alpha-black: rgba(0, 0, 0, 0.3);
+
+  /* Utility colors - stay light for badge/status visibility */
+  --color-utility-blue-50: #eff6ff;
+  --color-utility-blue-100: #dbeafe;
+  --color-utility-blue-200: #bfdbfe;
+  --color-utility-green-50: #f0fdf4;
+  --color-utility-green-100: #dcfce7;
+  --color-utility-green-200: #bbf7d0;
+  --color-utility-green-500: #22c55e;
+  --color-utility-green-600: #16a34a;
+  --color-utility-green-700: #15803d;
+  --color-utility-neutral-50: #fafafa;
+  --color-utility-neutral-100: #f5f5f5;
+  --color-utility-neutral-200: #e5e5e5;
+  --color-utility-neutral-300: #d4d4d4;
+  --color-utility-neutral-400: #a3a3a3;
+  --color-utility-neutral-500: #737373;
+  --color-utility-neutral-600: #525252;
+  --color-utility-neutral-700: #404040;
+  --color-utility-red-50: #fef2f2;
+  --color-utility-red-100: #fee2e2;
+  --color-utility-red-200: #fecaca;
+  --color-utility-red-400: #f87171;
+  --color-utility-red-500: #ef4444;
+  --color-utility-red-600: #dc2626;
+  --color-utility-red-700: #b91c1c;
+  --color-utility-yellow-50: #fffbeb;
+  --color-utility-yellow-100: #fef3c7;
+  --color-utility-yellow-200: #fde68a;
+  --color-utility-yellow-400: #fbbf24;
+  --color-utility-yellow-500: #f59e0b;
+  --color-utility-yellow-600: #d97706;
+  --color-utility-yellow-700: #b45309;
+  --color-utility-brand-50: #fef2f2;
+  --color-utility-brand-100: #fee2e2;
+  --color-utility-brand-200: #fecaca;
+  --color-utility-brand-600: #dc2626;
+  --color-utility-indigo-50: #eef2ff;
+  --color-utility-indigo-100: #e0e7ff;
+  --color-utility-orange-50: #fff7ed;
+  --color-utility-orange-100: #ffedd5;
+  --color-utility-pink-50: #fdf2f8;
+  --color-utility-pink-100: #fce7f3;
+  --color-utility-purple-50: #faf5ff;
+  --color-utility-purple-100: #f3e8ff;
+  --color-utility-sky-50: #f0f9ff;
+  --color-utility-sky-100: #e0f2fe;
+  --color-utility-slate-50: #f8fafc;
+  --color-utility-slate-100: #f1f5f9;
+}
+
+/* Override text colors for dark theme - Tailwind v4 maps text-* to same color-* var as bg-*
+   These overrides use separate --color-text-* variables for readability */
+@layer utilities {
+  .text-primary { color: var(--color-text-primary, #ffffff); }
+  .text-secondary { color: var(--color-text-secondary, #e5e5e5); }
+  .text-secondary_hover { color: var(--color-text-secondary_hover, #ffffff); }
+  .text-tertiary { color: var(--color-text-tertiary, #a3a3a3); }
+  .text-tertiary_hover { color: var(--color-text-tertiary_hover, #cccccc); }
+  .text-quaternary { color: var(--color-text-quaternary, #666666); }
+  .text-placeholder { color: var(--color-text-placeholder, #555555); }
 }
 
 @keyframes fade-in {
@@ -47,15 +191,13 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: dark;
 }
 
 body {
   font-family: var(--font-sans);
-}
-
-.bg-dots {
-  background-image: radial-gradient(circle, rgba(0,0,0,0.04) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: var(--color-surface-deepest);
+  color: #ffffff;
 }
 
 ::-webkit-scrollbar {
@@ -68,10 +210,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #2a2a2a;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #404040;
 }
