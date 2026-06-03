@@ -33,8 +33,16 @@ export default function StatsCards({ leads }: { leads: Lead[] }) {
 
   const contactRate7 = last7Count > 0 ? (last7Contacted / last7Count) * 100 : 0;
   const contactRatePrev = prev7Count > 0 ? (prev7Contacted / prev7Count) * 100 : 0;
-  const won7 = last7.filter((l) => l.status === "Won").length;
-  const wonPrev = prev7.filter((l) => l.status === "Won").length;
+  const today = leads.filter((l) => {
+    const d = new Date(l.created_at);
+    return d.toDateString() === new Date().toDateString();
+  }).length;
+  const yesterday = leads.filter((l) => {
+    const d = new Date(l.created_at);
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    return d.toDateString() === y.toDateString();
+  }).length;
 
   const cards = [
     {
@@ -56,9 +64,9 @@ export default function StatsCards({ leads }: { leads: Lead[] }) {
       icon: Inbox01,
     },
     {
-      label: "Won (7d)",
-      value: won7.toLocaleString(),
-      delta: calculateDelta(won7, wonPrev),
+      label: "Today's leads",
+      value: today.toLocaleString(),
+      delta: calculateDelta(today, yesterday),
       icon: CheckCircle,
     },
   ];
@@ -103,7 +111,7 @@ export default function StatsCards({ leads }: { leads: Lead[] }) {
               )}
               {c.delta.value}
             </span>
-            <span className="text-xs text-tertiary">vs prev week</span>
+            <span className="text-xs text-tertiary">{c.label === "Today's leads" ? "vs yesterday" : "vs prev week"}</span>
           </div>
         </div>
       ))}

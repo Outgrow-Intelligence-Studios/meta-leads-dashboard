@@ -36,7 +36,7 @@ function formatDate(iso: string) {
 
 export default function LeadsTable({ leads, onChange, loading }: Props) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("today");
   const [sortKey, setSortKey] = useState<"created_at" | "name">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [savingLead, setSavingLead] = useState<Record<string, string | null>>({});
@@ -60,6 +60,10 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let out = leads.filter((l) => {
+      if (statusFilter === "today") {
+        const d = new Date(l.created_at);
+        return d.toDateString() === new Date().toDateString();
+      }
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (!q) return true;
       return (
@@ -193,6 +197,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 onSelectionChange={(key) => setStatusFilter(key as string)}
                 className="w-36"
               >
+                <SelectItem id="today" label="Today" />
                 <SelectItem id="all" label="All statuses" />
                 {STATUSES.map((s) => (
                   <SelectItem key={s} id={s} label={s} />
