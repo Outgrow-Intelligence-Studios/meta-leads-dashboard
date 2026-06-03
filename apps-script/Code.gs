@@ -16,7 +16,9 @@
 const CONFIG = {
   SHEET_NAME: 'Leads',
   LOCK_TIMEOUT: 30000,
-  HEADERS: ['Timestamp', 'Name', 'Email', 'Phone', 'Source', 'Notes', 'Status']
+  HEADERS: ['Timestamp', 'Name', 'Email', 'Phone', 'Source', 'Notes', 'Status'],
+  SUPABASE_URL: 'https://gyqneffgffrflqjbhbqu.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5cW5lZmZnZmZyZmxxamJoYnF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTU3MTMsImV4cCI6MjA5MjUzMTcxM30.CY-KYiiWhGwH7Bmg5oiarERW86YzdKAWlIaGDXZ5SkY'
 };
 
 function getSheet_() {
@@ -71,7 +73,7 @@ function doPost(e) {
     const action = payload.action || 'add';
 
     if (action === 'add') {
-      const { name, email, phone, source } = payload;
+      const { name, email, phone, source, notes } = payload;
       if (!name || !email) {
         return json_({ status: 'error', message: 'name and email required' });
       }
@@ -81,9 +83,10 @@ function doPost(e) {
         email,
         phone || 'N/A',
         source || 'Landing Page',
-        '',
+        notes || '',
         'New'
       ]);
+      syncToSupabase_({ name, email, phone, source, notes });
       return json_({ status: 'success', message: 'Lead captured.' });
     }
 
@@ -113,6 +116,36 @@ function doPost(e) {
     return json_({ status: 'error', message: 'Server error: ' + err.message });
   } finally {
     lock.releaseLock();
+  }
+}
+
+/** Sync a new lead to Supabase (non-blocking — never throws) */
+function syncToSupabase_(lead) {
+  try {
+    const payload = {
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone || 'N/A',
+      source: lead.source || 'Landing Page',
+      notes: lead.notes || '',
+      status: lead.status || 'New',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    const options = {
+      method: 'post',
+      headers: {
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    UrlFetchApp.fetch(CONFIG.SUPABASE_URL + '/rest/v1/leads', options);
+  } catch (e) {
+    console.warn('Supabase sync failed (non-blocking): ' + e.message);
   }
 }
 
