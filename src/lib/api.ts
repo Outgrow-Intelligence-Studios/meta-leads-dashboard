@@ -1,136 +1,98 @@
+import { supabase } from "./supabase";
+
 export type Lead = {
-  id: string
-  name: string
-  email: string
-  phone: string
-  source: string
-  notes: string
-  status: 'New' | 'Contacted' | 'Hot' | 'Won' | 'Lost'
-  created_at: string
-  updated_at: string
-}
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  source: string;
+  notes: string;
+  status: "New" | "Contacted" | "Hot" | "Won" | "Lost";
+  created_at: string;
+  updated_at: string;
+};
 
-const STORAGE_KEY = 'meta_leads_apps_script_url'
+const STORAGE_KEY = "meta_leads_apps_script_url";
 
-// Default Apps Script URL - update this if your deployment URL changes
-const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycbxRXgKzakSG81tw01nw7pRI6hmgCgaJiMFEGmLM0n-aaxl32gsrMkIYl_n0MCn2_XTx/exec'
+const DEFAULT_URL =
+  "https://script.google.com/macros/s/AKfycbxRXgKzakSG81tw01nw7pRI6hmgCgaJiMFEGmLM0n-aaxl32gsrMkIYl_n0MCn2_XTx/exec";
 
 export function getScriptUrl(): string {
-  return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL
+  return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL;
 }
 
 export function setScriptUrl(url: string) {
-  localStorage.setItem(STORAGE_KEY, url.trim())
+  localStorage.setItem(STORAGE_KEY, url.trim());
 }
 
-async function request(endpoint: string, options?: RequestInit): Promise<Record<string, unknown>> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 15000)
-
-  try {
-    const res = await fetch(endpoint, {
-      redirect: 'follow',
-      signal: controller.signal,
-      ...options,
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const data = await res.json()
-    if (data.status !== 'success') throw new Error(String(data.message || 'Request failed'))
-    return data
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
-function parseLeads(raw: Array<Record<string, unknown>>): Lead[] {
-  return raw.map((l) => ({
-    id: String(l.row ?? crypto.randomUUID()),
-    name: String(l.name ?? ''),
-    email: String(l.email ?? ''),
-    phone: String(l.phone ?? 'N/A'),
-    source: String(l.source ?? 'Landing Page'),
-    notes: String(l.notes ?? ''),
-    status: String(l.status ?? 'New') as Lead['status'],
-    created_at: String(l.timestamp ?? new Date().toISOString()),
-    updated_at: String(l.timestamp ?? new Date().toISOString()),
-  }))
+function toLead(row: Record<string, unknown>): Lead {
+  return {
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    email: String(row.email ?? ""),
+    phone: String(row.phone ?? "N/A"),
+    source: String(row.source ?? "Landing Page"),
+    notes: String(row.notes ?? ""),
+    status: (row.status ?? "New") as Lead["status"],
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+  };
 }
 
 export async function fetchLeads(): Promise<Lead[]> {
-  const url = getScriptUrl()
-  if (!url) return []
-  const data = await request(url, { method: 'GET' })
-  return parseLeads(data.leads as Array<Record<string, unknown>>)
+  const { data, error } = await supabase
+    .from("leads")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(toLead);
 }
 
 export async function addLead(lead: {
-  name: string
-  email: string
-  phone?: string
-  source?: string
-  notes?: string
-  status?: string
+  name: string;
+  email: string;
+  phone?: string;
+  source?: string;
+  notes?: string;
+  status?: string;
 }): Promise<Lead> {
-  const url = getScriptUrl()
-  if (!url) throw new Error('No Apps Script URL configured')
-  await request(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'add', ...lead }),
-  })
-  return {
-    id: crypto.randomUUID(),
-    name: lead.name,
-    email: lead.email,
-    phone: lead.phone || 'N/A',
-    source: lead.source || 'Landing Page',
-    notes: lead.notes || '',
-    status: (lead.status || 'New') as Lead['status'],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
+  const { data, error } = await supabase
+    .from("leads")
+    .insert({
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone || "N/A",
+      source: lead.source || "Landing Page",
+      notes: lead.notes || "",
+      status: lead.status || "New",
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return toLead(data as Record<string, unknown>);
 }
 
-export async function updateLead(id: string, updates: Partial<Lead>): Promise<Lead> {
-  const url = getScriptUrl()
-  if (!url) throw new Error('No Apps Script URL configured')
-  const rowNumber = parseInt(id, 10)
-  if (isNaN(rowNumber)) throw new Error('Invalid lead ID')
-  if (updates.notes !== undefined) {
-    await request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'updateNote', row: rowNumber, note: updates.notes }),
+export async function updateLead(
+  id: string,
+  updates: Partial<Lead>
+): Promise<Lead> {
+  const { data, error } = await supabase
+    .from("leads")
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
     })
-  }
-  if (updates.status !== undefined) {
-    await request(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'updateStatus', row: rowNumber, status: updates.status }),
-    })
-  }
-  return {
-    id,
-    name: updates.name || '',
-    email: updates.email || '',
-    phone: updates.phone || '',
-    source: updates.source || '',
-    notes: updates.notes || '',
-    status: updates.status || 'New',
-    created_at: updates.created_at || new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return toLead(data as Record<string, unknown>);
 }
 
 export async function deleteLead(id: string): Promise<void> {
-  const url = getScriptUrl()
-  if (!url) throw new Error('No Apps Script URL configured')
-  const rowNumber = parseInt(id, 10)
-  if (isNaN(rowNumber)) throw new Error('Invalid lead ID')
-  await request(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'delete', row: rowNumber }),
-  })
+  const { error } = await supabase.from("leads").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }

@@ -123,8 +123,8 @@ export default function App() {
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center rounded-lg bg-secondary px-3 py-1.5 ring-1 ring-inset ring-secondary shadow-xs">
               <span className="flex items-center gap-1.5 text-xs font-medium text-tertiary">
-                <span className={`relative flex h-2 w-2 ${hasUrl ? "bg-utility-green-500" : "bg-utility-neutral-400"} rounded-full`} />
-                {hasUrl ? "Connected" : "No source"}
+                <span className="relative flex h-2 w-2 bg-utility-green-500 rounded-full" />
+                Supabase
               </span>
             </div>
 
@@ -183,7 +183,7 @@ export default function App() {
             </div>
           )}
 
-          {hasUrl && !error && leads.length > 0 && (
+          {!error && leads.length > 0 && (
             <div className="flex items-start gap-3 rounded-xl bg-utility-green-50 p-4 ring-1 ring-utility-green-200">
               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-utility-green-100 text-utility-green-700">
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -192,10 +192,10 @@ export default function App() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-utility-green-700">
-                  Connected to Google Sheets
+                  Connected to Supabase
                 </div>
                 <div className="text-sm text-utility-green-600 mt-0.5">
-                  {leads.length} lead{leads.length !== 1 ? "s" : ""} loaded from your sheet.
+                  {leads.length} lead{leads.length !== 1 ? "s" : ""} stored in database.
                 </div>
               </div>
             </div>

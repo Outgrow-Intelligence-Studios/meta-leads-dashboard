@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@react-stately/utils": "^3.12.1",
+    "@supabase/supabase-js": "^2.107.0",
     "@untitledui/file-icons": "^0.0.9",
     "@untitledui/icons": "^0.0.22",
     "clsx": "^2.1.1",
