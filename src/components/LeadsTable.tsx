@@ -36,7 +36,7 @@ function formatDate(iso: string) {
 
 export default function LeadsTable({ leads, onChange, loading }: Props) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("today");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<"created_at" | "name">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [savingLead, setSavingLead] = useState<Record<string, string | null>>({});
