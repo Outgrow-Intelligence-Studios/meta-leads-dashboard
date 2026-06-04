@@ -46,9 +46,9 @@ export default function StatsCards({ leads }: { leads: Lead[] }) {
 
   const cards = [
     {
-      label: "Total leads (7d)",
-      value: last7Count.toLocaleString(),
-      delta: calculateDelta(last7Count, prev7Count),
+      label: "Total leads",
+      value: leads.length.toLocaleString(),
+      delta: { value: `+${last7Count} this week`, tone: last7Count > 0 ? ("up" as const) : ("neutral" as const) },
       icon: Users01,
     },
     {
@@ -111,7 +111,9 @@ export default function StatsCards({ leads }: { leads: Lead[] }) {
               )}
               {c.delta.value}
             </span>
-            <span className="text-xs text-tertiary">{c.label === "Today's leads" ? "vs yesterday" : "vs prev week"}</span>
+            <span className="text-xs text-tertiary">
+              {c.label === "Total leads" ? "this week" : c.label === "Today's leads" ? "vs yesterday" : "vs prev week"}
+            </span>
           </div>
         </div>
       ))}
