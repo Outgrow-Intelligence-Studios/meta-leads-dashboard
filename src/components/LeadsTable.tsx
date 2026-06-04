@@ -119,6 +119,19 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     }
   }, [onChange]);
 
+  const changeFollowUp = useCallback(async (id: string, date: string) => {
+    onChange((prev) => prev.map((l) => (l.id === id ? { ...l, follow_up: date || null } : l)));
+    setSavingLead((s) => ({ ...s, [id]: "follow_up" }));
+    try {
+      await updateLead(id, { follow_up: date || null });
+      setToast({ msg: "Follow-up updated.", tone: "ok" });
+    } catch (e) {
+      setToast({ msg: `Follow-up failed: ${(e as Error).message}`, tone: "err" });
+    } finally {
+      setSavingLead((s) => ({ ...s, [id]: null }));
+    }
+  }, [onChange]);
+
   const removeLead = useCallback(async (id: string) => {
     if (!confirm("Delete this lead? This cannot be undone.")) return;
     setSavingLead((s) => ({ ...s, [id]: "delete" }));
@@ -154,9 +167,9 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
   }
 
   function exportCsv() {
-    const headers = ["Timestamp", "Name", "Email", "Phone", "Source", "Status", "Notes"];
+    const headers = ["Timestamp", "Name", "Email", "Phone", "Source", "Status", "Follow Up", "Notes"];
     const rows = filtered.map((l) =>
-      [l.created_at, l.name, l.email, l.phone, l.source, l.status, l.notes]
+      [l.created_at, l.name, l.email, l.phone, l.source, l.status, l.follow_up || "", l.notes]
         .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
         .join(",")
     );
@@ -173,7 +186,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
   return (
     <>
-      <TableCard.Root>
+      <TableCard.Root className="overflow-hidden">
         <TableCard.Header
           title="All leads"
           badge={filtered.length}
@@ -293,39 +306,43 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
           </EmptyState>
         )}
 
-        {/* Table */}
+        {/* Table — scrollable, no row shrinking */}
         {!loading && filtered.length > 0 && (
-          <Table size="sm" aria-label="Leads table">
-            <Table.Header>
-              <Table.Head isRowHeader>
-                <button onClick={() => toggleSort("name")} className="flex items-center gap-1">
-                  Lead
-                </button>
-              </Table.Head>
-              <Table.Head>Contact</Table.Head>
-              <Table.Head>Source</Table.Head>
-              <Table.Head>
-                <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1">
-                  Captured
-                </button>
-              </Table.Head>
-              <Table.Head>Status</Table.Head>
-              <Table.Head>Notes</Table.Head>
-              <Table.Head>{""}</Table.Head>
-            </Table.Header>
-            <Table.Body>
-              {filtered.map((lead) => (
-                <LeadRow
-                  key={lead.id}
-                  lead={lead}
-                  saving={savingLead[lead.id] || null}
-                  onNoteBlur={persistNote}
-                  onStatusChange={changeStatus}
-                  onDelete={removeLead}
-                />
-              ))}
-            </Table.Body>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table size="sm" aria-label="Leads table" className="min-w-[1100px]">
+              <Table.Header>
+                <Table.Head isRowHeader className="min-w-[220px]">
+                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1">
+                    Lead
+                  </button>
+                </Table.Head>
+                <Table.Head className="min-w-[130px]">Contact</Table.Head>
+                <Table.Head className="min-w-[120px]">Source</Table.Head>
+                <Table.Head className="min-w-[150px]">
+                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1">
+                    Captured
+                  </button>
+                </Table.Head>
+                <Table.Head className="min-w-[110px]">Status</Table.Head>
+                <Table.Head className="min-w-[130px]">Follow Up</Table.Head>
+                <Table.Head className="min-w-[200px]">Notes</Table.Head>
+                <Table.Head className="w-10">{""}</Table.Head>
+              </Table.Header>
+              <Table.Body>
+                {filtered.map((lead) => (
+                  <LeadRow
+                    key={lead.id}
+                    lead={lead}
+                    saving={savingLead[lead.id] || null}
+                    onNoteBlur={persistNote}
+                    onStatusChange={changeStatus}
+                    onFollowUpChange={changeFollowUp}
+                    onDelete={removeLead}
+                  />
+                ))}
+              </Table.Body>
+            </Table>
+          </div>
         )}
       </TableCard.Root>
 
@@ -357,12 +374,14 @@ function LeadRow({
   saving,
   onNoteBlur,
   onStatusChange,
+  onFollowUpChange,
   onDelete,
 }: {
   lead: Lead;
   saving: string | null;
   onNoteBlur: (id: string, note: string) => void;
   onStatusChange: (id: string, status: string) => void;
+  onFollowUpChange: (id: string, date: string) => void;
   onDelete: (id: string) => void;
 }) {
   const [note, setNote] = useState(lead.notes);
@@ -378,6 +397,8 @@ function LeadRow({
     initialNote.current = note;
     onNoteBlur(lead.id, note);
   }
+
+  const isOverdue = lead.follow_up && new Date(lead.follow_up) < new Date(new Date().toDateString());
 
   return (
     <Table.Row>
@@ -431,13 +452,30 @@ function LeadRow({
       </Table.Cell>
       <Table.Cell>
         <div className="relative">
+          <input
+            type="date"
+            value={lead.follow_up || ""}
+            onChange={(e) => onFollowUpChange(lead.id, e.target.value)}
+            className={cx(
+              "w-full rounded-md border border-transparent bg-secondary px-2 py-1.5 text-xs text-primary placeholder-placeholder transition-colors",
+              "hover:border-primary focus:border-brand focus:bg-primary focus:outline-none focus:ring-2 focus:ring-focus-ring",
+              isOverdue && "ring-1 ring-utility-red-400 text-utility-red-600",
+            )}
+          />
+          {saving === "follow_up" && (
+            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
+          )}
+        </div>
+      </Table.Cell>
+      <Table.Cell>
+        <div className="relative">
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onBlur={handleBlur}
             rows={1}
             placeholder="Add a note..."
-            className="w-full min-w-[200px] resize-y rounded-md border border-transparent bg-secondary px-2.5 py-1.5 text-sm text-primary placeholder-placeholder hover:border-primary focus:border-brand focus:bg-primary focus:outline-none focus:ring-2 focus:ring-focus-ring transition-colors"
+            className="w-full min-w-[180px] resize-y rounded-md border border-transparent bg-secondary px-2.5 py-1.5 text-sm text-primary placeholder-placeholder hover:border-primary focus:border-brand focus:bg-primary focus:outline-none focus:ring-2 focus:ring-focus-ring transition-colors"
           />
           {saving === "note" && (
             <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>

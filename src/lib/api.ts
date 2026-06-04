@@ -8,6 +8,7 @@ export type Lead = {
   source: string;
   notes: string;
   status: "New" | "Contacted" | "Hot" | "Won" | "Lost";
+  follow_up: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -15,7 +16,7 @@ export type Lead = {
 const STORAGE_KEY = "meta_leads_apps_script_url";
 
 const DEFAULT_URL =
-  "https://script.google.com/macros/s/AKfycbxRXgKzakSG81tw01nw7pRI6hmgCgaJiMFEGmLM0n-aaxl32gsrMkIYl_n0MCn2_XTx/exec";
+  "https://script.google.com/macros/s/AKfycbz-jP5TnOgJeuC8IdBZnuAuw_RMIZeIz3XSH00ebO9k_LwhL9e0fu1dTxMuH9AQQEjO/exec";
 
 export function getScriptUrl(): string {
   return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL;
@@ -34,6 +35,7 @@ function toLead(row: Record<string, unknown>): Lead {
     source: String(row.source ?? "Landing Page"),
     notes: String(row.notes ?? ""),
     status: (row.status ?? "New") as Lead["status"],
+    follow_up: (row.follow_up as string) || null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
