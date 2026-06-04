@@ -10,7 +10,6 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import { fetchLeads, getScriptUrl, type Lead } from "./lib/api";
 import { Button } from "@/components/base/buttons/button";
 import { ChevronRight, RefreshCw01, Settings01 } from "@untitledui/icons";
-import oiLogo from "./assets/oi-logo.svg";
 
 function getPageFromHash(): string {
   const hash = window.location.hash.replace("#", "");
@@ -206,7 +205,7 @@ export default function App() {
 
           <footer className="flex items-center justify-center gap-1.5 pt-2 pb-4 text-xs text-tertiary">
             <span>Powered by</span>
-            <img src={oiLogo} alt="OI" className="h-3 w-auto opacity-70" />
+            <img src="https://www.letsoutgrow.com/oglogo.png" alt="Outgrow" className="h-4 w-auto opacity-90" />
           </footer>
         </div>
       </main>
