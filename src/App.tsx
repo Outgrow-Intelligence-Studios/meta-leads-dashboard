@@ -205,7 +205,7 @@ export default function App() {
           {!error && pageContent}
 
           <footer className="flex items-center justify-center gap-1.5 pt-2 pb-4 text-xs text-tertiary">
-            <span>Leadflow &middot; Meta Ads CRM &middot; Powered by Google Sheets</span>
+            <span>Powered by</span>
             <img src={oiLogo} alt="OI" className="h-3 w-auto opacity-70" />
           </footer>
         </div>
