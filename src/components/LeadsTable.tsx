@@ -124,9 +124,22 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     setSavingLead((s) => ({ ...s, [id]: "follow_up" }));
     try {
       await updateLead(id, { follow_up: date || null });
-      setToast({ msg: "Follow-up updated.", tone: "ok" });
+      setToast({ msg: "Follow-up 1 updated.", tone: "ok" });
     } catch (e) {
-      setToast({ msg: `Follow-up failed: ${(e as Error).message}`, tone: "err" });
+      setToast({ msg: `Follow-up 1 failed: ${(e as Error).message}`, tone: "err" });
+    } finally {
+      setSavingLead((s) => ({ ...s, [id]: null }));
+    }
+  }, [onChange]);
+
+  const changeFollowUp2 = useCallback(async (id: string, date: string) => {
+    onChange((prev) => prev.map((l) => (l.id === id ? { ...l, follow_up_2: date || null } : l)));
+    setSavingLead((s) => ({ ...s, [id]: "follow_up_2" }));
+    try {
+      await updateLead(id, { follow_up_2: date || null });
+      setToast({ msg: "Follow-up 2 updated.", tone: "ok" });
+    } catch (e) {
+      setToast({ msg: `Follow-up 2 failed: ${(e as Error).message}`, tone: "err" });
     } finally {
       setSavingLead((s) => ({ ...s, [id]: null }));
     }
@@ -167,9 +180,9 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
   }
 
   function exportCsv() {
-    const headers = ["Timestamp", "Name", "Email", "Phone", "Source", "Status", "Follow Up", "Notes"];
+    const headers = ["Timestamp", "Name", "Email", "Phone", "Source", "Status", "Follow Up 1", "Follow Up 2", "Notes"];
     const rows = filtered.map((l) =>
-      [l.created_at, l.name, l.email, l.phone, l.source, l.status, l.follow_up || "", l.notes]
+      [l.created_at, l.name, l.email, l.phone, l.source, l.status, l.follow_up || "", l.follow_up_2 || "", l.notes]
         .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
         .join(",")
     );
@@ -309,7 +322,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         {/* Table — scrollable, no row shrinking */}
         {!loading && filtered.length > 0 && (
           <div className="overflow-x-auto">
-            <Table size="sm" aria-label="Leads table" className="min-w-[1100px]">
+            <Table size="sm" aria-label="Leads table" className="min-w-[1230px]">
               <Table.Header>
                 <Table.Head isRowHeader className="min-w-[220px]">
                   <button onClick={() => toggleSort("name")} className="flex items-center gap-1">
@@ -324,7 +337,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                   </button>
                 </Table.Head>
                 <Table.Head className="min-w-[110px]">Status</Table.Head>
-                <Table.Head className="min-w-[130px]">Follow Up</Table.Head>
+                <Table.Head className="min-w-[130px]">Follow Up 1</Table.Head>
+                <Table.Head className="min-w-[130px]">Follow Up 2</Table.Head>
                 <Table.Head className="min-w-[200px]">Notes</Table.Head>
                 <Table.Head className="w-10">{""}</Table.Head>
               </Table.Header>
@@ -337,6 +351,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     onNoteBlur={persistNote}
                     onStatusChange={changeStatus}
                     onFollowUpChange={changeFollowUp}
+                    onFollowUp2Change={changeFollowUp2}
                     onDelete={removeLead}
                   />
                 ))}
@@ -375,13 +390,15 @@ function LeadRow({
   onNoteBlur,
   onStatusChange,
   onFollowUpChange,
+  onFollowUp2Change,
   onDelete,
 }: {
   lead: Lead;
   saving: string | null;
-  onNoteBlur: (id: string, note: string) => void;
+  onNoteBlur: (id: string, text: string) => void;
   onStatusChange: (id: string, status: string) => void;
   onFollowUpChange: (id: string, date: string) => void;
+  onFollowUp2Change: (id: string, date: string) => void;
   onDelete: (id: string) => void;
 }) {
   const [note, setNote] = useState(lead.notes);
@@ -399,6 +416,7 @@ function LeadRow({
   }
 
   const isOverdue = lead.follow_up && new Date(lead.follow_up) < new Date(new Date().toDateString());
+  const isOverdue2 = lead.follow_up_2 && new Date(lead.follow_up_2) < new Date(new Date().toDateString());
 
   return (
     <Table.Row>
@@ -463,6 +481,23 @@ function LeadRow({
             )}
           />
           {saving === "follow_up" && (
+            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
+          )}
+        </div>
+      </Table.Cell>
+      <Table.Cell>
+        <div className="relative">
+          <input
+            type="date"
+            value={lead.follow_up_2 || ""}
+            onChange={(e) => onFollowUp2Change(lead.id, e.target.value)}
+            className={cx(
+              "w-full rounded-md border border-transparent bg-secondary px-2 py-1.5 text-xs text-primary placeholder-placeholder transition-colors",
+              "hover:border-primary focus:border-brand focus:bg-primary focus:outline-none focus:ring-2 focus:ring-focus-ring",
+              isOverdue2 && "ring-1 ring-utility-red-400 text-utility-red-600",
+            )}
+          />
+          {saving === "follow_up_2" && (
             <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
           )}
         </div>

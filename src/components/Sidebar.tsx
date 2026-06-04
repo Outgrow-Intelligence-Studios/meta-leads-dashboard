@@ -36,7 +36,7 @@ export default function Sidebar() {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1">
         <NavList
           activeUrl={activeUrl}
           items={navItems}

@@ -9,6 +9,7 @@ export type Lead = {
   notes: string;
   status: "New" | "Contacted" | "Hot" | "Won" | "Lost";
   follow_up: string | null;
+  follow_up_2: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -36,6 +37,7 @@ function toLead(row: Record<string, unknown>): Lead {
     notes: String(row.notes ?? ""),
     status: (row.status ?? "New") as Lead["status"],
     follow_up: (row.follow_up as string) || null,
+    follow_up_2: (row.follow_up_2 as string) || null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };
