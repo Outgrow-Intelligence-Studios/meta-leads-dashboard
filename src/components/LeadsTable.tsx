@@ -455,12 +455,13 @@ function LeadRow({
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
           className={cx(
-            "cursor-pointer rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset focus:outline-none focus:ring-2 focus:ring-focus-ring transition-colors",
-            lead.status === "New" && "bg-utility-blue-50 text-utility-blue-700 ring-utility-blue-200",
-            lead.status === "Contacted" && "bg-utility-yellow-50 text-utility-yellow-700 ring-utility-yellow-200",
-            lead.status === "Hot" && "bg-utility-red-50 text-utility-red-700 ring-utility-red-200",
-            lead.status === "Won" && "bg-utility-green-50 text-utility-green-700 ring-utility-green-200",
-            lead.status === "Lost" && "bg-utility-neutral-50 text-utility-neutral-700 ring-utility-neutral-200",
+            "cursor-pointer rounded-full bg-transparent px-2.5 py-1 text-xs font-medium ring-1 ring-inset focus:outline-none focus:ring-2 focus:ring-focus-ring transition-colors",
+            lead.status === "New" && "text-utility-blue-300 ring-utility-blue-400/40",
+            lead.status === "Contacted" && "text-utility-yellow-300 ring-utility-yellow-400/40",
+            lead.status === "Hot" && "text-utility-red-300 ring-utility-red-400/40",
+            lead.status === "Won" && "text-utility-green-300 ring-utility-green-400/40",
+            lead.status === "Lost" && "text-fg-quaternary ring-border-secondary",
+            (!lead.status || !["New", "Contacted", "Hot", "Won", "Lost"].includes(lead.status)) && "text-fg-quaternary ring-border-secondary",
           )}
         >
           {STATUSES.map((s) => (

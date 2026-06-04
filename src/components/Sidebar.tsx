@@ -3,6 +3,7 @@ import { Announcement01, BarChart01, ChevronLeft, ChevronRight, LayoutGrid01, Se
 import { NavList } from "@/components/application/app-navigation/base-components/nav-list";
 import type { NavItemType } from "@/components/application/app-navigation/config";
 import { cx } from "@/utils/cx";
+import oiLogo from "@/assets/oi-logo.svg";
 
 const navItems: NavItemType[] = [
   { label: "Dashboard", icon: LayoutGrid01, href: "#/dashboard" },
@@ -27,8 +28,8 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-center px-4 py-3 border-b border-secondary min-h-[56px]">
         <img
-          src="https://mailing.columbus-cleaning.com/columbus-logo.svg"
-          alt="Logo"
+          src={oiLogo}
+          alt="OI"
           className={cx(
             "object-contain transition-all duration-300",
             collapsed ? "w-5 h-5" : "max-h-6 w-auto",
@@ -44,17 +45,27 @@ export default function Sidebar() {
         />
       </div>
 
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex items-center justify-center w-full py-3 border-t border-secondary text-fg-quaternary hover:text-fg-quaternary_hover hover:bg-primary_hover transition-colors"
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed ? (
-          <ChevronRight className="size-4 stroke-[2.5px]" />
-        ) : (
-          <ChevronLeft className="size-4 stroke-[2.5px]" />
-        )}
-      </button>
+      <div className="border-t border-secondary">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex w-full items-center justify-center py-2.5 text-fg-quaternary transition-colors hover:bg-primary_hover hover:text-fg-quaternary_hover"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <ChevronRight className="size-4 stroke-[2.5px]" />
+          ) : (
+            <ChevronLeft className="size-4 stroke-[2.5px]" />
+          )}
+        </button>
+        <div
+          className={cx(
+            "flex items-center justify-center gap-1.5 border-t border-secondary py-2.5 text-[10px] font-medium tracking-wider text-fg-quaternary uppercase",
+          )}
+        >
+          <span>Powered by</span>
+          <img src={oiLogo} alt="OI" className="h-3 w-auto opacity-80" />
+        </div>
+      </div>
     </aside>
   );
 }

@@ -17,7 +17,7 @@ export type Lead = {
 const STORAGE_KEY = "meta_leads_apps_script_url";
 
 const DEFAULT_URL =
-  "https://script.google.com/macros/s/AKfycbz-jP5TnOgJeuC8IdBZnuAuw_RMIZeIz3XSH00ebO9k_LwhL9e0fu1dTxMuH9AQQEjO/exec";
+  "https://script.google.com/macros/s/AKfycbxf2PZZ13u1SeUb4s-Zd4Ew1n7ruM57Q2o2TM9I5RGwSvIPlBXMia-_YvY62g4Zkk_j/exec";
 
 export function getScriptUrl(): string {
   return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL;
