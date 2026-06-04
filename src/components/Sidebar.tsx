@@ -48,7 +48,7 @@ export default function Sidebar() {
       <div className="border-t border-secondary">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center py-2.5 text-fg-quaternary transition-colors hover:bg-primary_hover hover:text-fg-quaternary_hover"
+          className="flex w-full items-center justify-center py-3 text-fg-quaternary transition-colors hover:bg-primary_hover hover:text-fg-quaternary_hover"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
@@ -57,14 +57,6 @@ export default function Sidebar() {
             <ChevronLeft className="size-4 stroke-[2.5px]" />
           )}
         </button>
-        <div
-          className={cx(
-            "flex items-center justify-center gap-1.5 border-t border-secondary py-2.5 text-[10px] font-medium tracking-wider text-fg-quaternary uppercase",
-          )}
-        >
-          <span>Powered by</span>
-          <img src={oiLogo} alt="OI" className="h-3 w-auto opacity-80" />
-        </div>
       </div>
     </aside>
   );

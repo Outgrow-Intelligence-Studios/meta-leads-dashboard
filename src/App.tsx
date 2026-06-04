@@ -10,6 +10,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import { fetchLeads, getScriptUrl, type Lead } from "./lib/api";
 import { Button } from "@/components/base/buttons/button";
 import { ChevronRight, RefreshCw01, Settings01 } from "@untitledui/icons";
+import oiLogo from "./assets/oi-logo.svg";
 
 function getPageFromHash(): string {
   const hash = window.location.hash.replace("#", "");
@@ -203,8 +204,9 @@ export default function App() {
 
           {!error && pageContent}
 
-          <footer className="pt-2 pb-4 text-center text-xs text-tertiary">
-            Leadflow &middot; Meta Ads CRM &middot; Powered by Google Sheets
+          <footer className="flex items-center justify-center gap-1.5 pt-2 pb-4 text-xs text-tertiary">
+            <span>Leadflow &middot; Meta Ads CRM &middot; Powered by Google Sheets</span>
+            <img src={oiLogo} alt="OI" className="h-3 w-auto opacity-70" />
           </footer>
         </div>
       </main>
