@@ -2,15 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download01, Plus, SearchLg } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
-import { Avatar } from "@/components/base/avatar/avatar";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
+import { Checkbox } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
 import { Select } from "@/components/base/select/select";
 import { SelectItem } from "@/components/base/select/select-item";
 import { Table, TableCard } from "@/components/application/table/table";
 import { TextArea } from "@/components/base/textarea/textarea";
-import { LoadingIndicator } from "@/components/application/loading-indicator/loading-indicator";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { cx } from "@/utils/cx";
 
@@ -21,6 +20,22 @@ type Props = {
 };
 
 const STATUSES = ["New", "Contacted", "Hot", "Won", "Lost"] as const;
+const CELL_INPUT_CLASS =
+  "w-full rounded-lg border border-secondary bg-primary px-3 py-2 text-sm text-primary shadow-xs outline-none transition-all placeholder:text-placeholder hover:border-primary focus:border-brand focus:ring-4 focus:ring-brand/12";
+const CELL_TEXTAREA_CLASS =
+  "w-full min-w-[220px] resize-none rounded-lg border border-secondary bg-primary px-3 py-2 text-sm text-primary shadow-xs outline-none transition-all placeholder:text-placeholder hover:border-primary focus:border-brand focus:ring-4 focus:ring-brand/12";
+const STICKY_DATE_CLASS = "sticky left-0 z-10 bg-primary shadow-[1px_0_0_0_rgba(16,24,40,0.06)]";
+const STICKY_NAME_CLASS = "sticky left-[150px] z-10 bg-primary shadow-[1px_0_0_0_rgba(16,24,40,0.06)]";
+const SOURCE_PILL_CLASS =
+  "inline-flex items-center rounded-md border border-secondary bg-secondary px-2.5 py-1 text-xs font-medium text-secondary";
+
+function getStatusClass(status: Lead["status"]) {
+  if (status === "New") return "text-utility-blue-700 ring-utility-blue-200 bg-utility-blue-50";
+  if (status === "Contacted") return "text-utility-yellow-700 ring-utility-yellow-200 bg-utility-yellow-50";
+  if (status === "Hot") return "text-utility-red-700 ring-utility-red-200 bg-utility-red-50";
+  if (status === "Won") return "text-utility-green-700 ring-utility-green-200 bg-utility-green-50";
+  return "text-fg-quaternary ring-border-secondary bg-primary";
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -34,6 +49,65 @@ function formatDate(iso: string) {
   });
 }
 
+function formatShortDate(iso: string | null) {
+  if (!iso) return "No date";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function SkeletonBar({ className }: { className?: string }) {
+  return <div className={cx("h-3.5 rounded bg-secondary/80 animate-pulse", className)} />;
+}
+
+function LeadsTableSkeleton() {
+  return (
+    <div className="overflow-x-auto bg-primary">
+      <div className="min-w-[1940px]">
+        <div className="grid grid-cols-[48px_150px_180px_220px_140px_150px_160px_180px_240px_170px_170px_180px_180px_180px_40px] border-b border-secondary bg-primary/95 px-5 py-3">
+          {["", "Created", "Lead", "Email", "Phone", "Source", "Lead Status", "Region", "Notes", "Next Follow-Up", "Final Follow-Up", "Owner", "Note 1", "Note 2", ""].map((label, index) => (
+            <div key={`${label}-${index}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+              {label}
+            </div>
+          ))}
+        </div>
+        {Array.from({ length: 6 }).map((_, rowIndex) => (
+          <div
+            key={rowIndex}
+            className="grid grid-cols-[48px_150px_180px_220px_140px_150px_160px_180px_240px_170px_170px_180px_180px_180px_40px] items-start border-b border-secondary px-5 py-4"
+          >
+            <SkeletonBar className="mt-1 h-5 w-5 rounded-md" />
+            <div className="space-y-2">
+              <SkeletonBar className="w-20" />
+              <SkeletonBar className="w-28" />
+            </div>
+            <div className="space-y-2">
+              <SkeletonBar className="w-24" />
+              <SkeletonBar className="w-16" />
+            </div>
+            <SkeletonBar className="w-40" />
+            <SkeletonBar className="w-24" />
+            <SkeletonBar className="h-7 w-24 rounded-md" />
+            <SkeletonBar className="h-9 w-full rounded-lg" />
+            <SkeletonBar className="h-9 w-full rounded-lg" />
+            <SkeletonBar className="h-14 w-full rounded-lg" />
+            <SkeletonBar className="h-9 w-full rounded-lg" />
+            <SkeletonBar className="h-9 w-full rounded-lg" />
+            <SkeletonBar className="h-9 w-full rounded-lg" />
+            <SkeletonBar className="h-9 w-full rounded-lg" />
+            <SkeletonBar className="h-9 w-full rounded-lg" />
+            <SkeletonBar className="mt-1 h-5 w-5 rounded-md" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function LeadsTable({ leads, onChange, loading }: Props) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -42,6 +116,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
   const [savingLead, setSavingLead] = useState<Record<string, string | null>>({});
   const [toast, setToast] = useState<{ msg: string; tone: "ok" | "err" } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [newLead, setNewLead] = useState({
     name: "",
     email: "",
@@ -57,6 +133,13 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(Array.from(prev).filter((id) => leads.some((lead) => lead.id === id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [leads]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let out = leads.filter((l) => {
@@ -71,7 +154,11 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         l.email?.toLowerCase().includes(q) ||
         l.phone?.toLowerCase().includes(q) ||
         l.source?.toLowerCase().includes(q) ||
-        l.notes?.toLowerCase().includes(q)
+        l.notes?.toLowerCase().includes(q) ||
+        l.location?.toLowerCase().includes(q) ||
+        l.sales_person?.toLowerCase().includes(q) ||
+        l.remark_1?.toLowerCase().includes(q) ||
+        l.remark_2?.toLowerCase().includes(q)
       );
     });
     out = [...out].sort((a, b) => {
@@ -94,17 +181,30 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     }
   }
 
-  const persistNote = useCallback(async (id: string, note: string) => {
-    setSavingLead((s) => ({ ...s, [id]: "note" }));
+  const persistCrmFields = useCallback(async (
+    lead: Lead,
+    updates: Partial<Pick<Lead, "notes" | "location" | "sales_person" | "remark_1" | "remark_2">>,
+    savingKey: "notes" | "location" | "sales_person" | "remark_1" | "remark_2",
+    successMessage: string,
+  ) => {
+    const nextLead = { ...lead, ...updates };
+    onChange((prev) => prev.map((item) => (item.id === lead.id ? nextLead : item)));
+    setSavingLead((s) => ({ ...s, [lead.id]: savingKey }));
     try {
-      await updateLead(id, { notes: note });
-      setToast({ msg: "Note saved.", tone: "ok" });
+      await updateLead(lead.id, {
+        notes: nextLead.notes,
+        location: nextLead.location,
+        sales_person: nextLead.sales_person,
+        remark_1: nextLead.remark_1,
+        remark_2: nextLead.remark_2,
+      });
+      setToast({ msg: successMessage, tone: "ok" });
     } catch (e) {
       setToast({ msg: `Save failed: ${(e as Error).message}`, tone: "err" });
     } finally {
-      setSavingLead((s) => ({ ...s, [id]: null }));
+      setSavingLead((s) => ({ ...s, [lead.id]: null }));
     }
-  }, []);
+  }, [onChange]);
 
   const changeStatus = useCallback(async (id: string, status: string) => {
     const typedStatus = status as Lead["status"];
@@ -124,9 +224,9 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     setSavingLead((s) => ({ ...s, [id]: "follow_up" }));
     try {
       await updateLead(id, { follow_up: date || null });
-      setToast({ msg: "Follow-up 1 updated.", tone: "ok" });
+      setToast({ msg: "Follow up 1 saved.", tone: "ok" });
     } catch (e) {
-      setToast({ msg: `Follow-up 1 failed: ${(e as Error).message}`, tone: "err" });
+      setToast({ msg: `Follow up 1 failed: ${(e as Error).message}`, tone: "err" });
     } finally {
       setSavingLead((s) => ({ ...s, [id]: null }));
     }
@@ -137,9 +237,9 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     setSavingLead((s) => ({ ...s, [id]: "follow_up_2" }));
     try {
       await updateLead(id, { follow_up_2: date || null });
-      setToast({ msg: "Follow-up 2 updated.", tone: "ok" });
+      setToast({ msg: "Follow up 2 saved.", tone: "ok" });
     } catch (e) {
-      setToast({ msg: `Follow-up 2 failed: ${(e as Error).message}`, tone: "err" });
+      setToast({ msg: `Follow up 2 failed: ${(e as Error).message}`, tone: "err" });
     } finally {
       setSavingLead((s) => ({ ...s, [id]: null }));
     }
@@ -179,10 +279,38 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     }
   }
 
-  function exportCsv() {
-    const headers = ["Timestamp", "Name", "Email", "Phone", "Source", "Status", "Follow Up 1", "Follow Up 2", "Notes"];
-    const rows = filtered.map((l) =>
-      [l.created_at, l.name, l.email, l.phone, l.source, l.status, l.follow_up || "", l.follow_up_2 || "", l.notes]
+  function exportCsv(rowsToExport = filtered) {
+    const headers = [
+      "Created",
+      "Lead",
+      "Email",
+      "Phone",
+      "Source",
+      "Lead Status",
+      "Region",
+      "Notes",
+      "Next Follow-Up",
+      "Final Follow-Up",
+      "Owner",
+      "Note 1",
+      "Note 2",
+    ];
+    const rows = rowsToExport.map((l) =>
+      [
+        l.created_at,
+        l.name,
+        l.email,
+        l.phone,
+        l.source,
+        l.status,
+        l.location,
+        l.notes,
+        l.follow_up || "",
+        l.follow_up_2 || "",
+        l.sales_person,
+        l.remark_1,
+        l.remark_2,
+      ]
         .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
         .join(",")
     );
@@ -197,19 +325,65 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  const selectedLeads = useMemo(
+    () => filtered.filter((lead) => selectedLeadIds.has(lead.id)),
+    [filtered, selectedLeadIds],
+  );
+
+  const allVisibleSelected = filtered.length > 0 && filtered.every((lead) => selectedLeadIds.has(lead.id));
+  const someVisibleSelected = filtered.some((lead) => selectedLeadIds.has(lead.id));
+
+  function toggleVisibleSelection(checked: boolean) {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (checked) filtered.forEach((lead) => next.add(lead.id));
+      else filtered.forEach((lead) => next.delete(lead.id));
+      return next;
+    });
+  }
+
+  function toggleLeadSelection(id: string, checked: boolean) {
+    setSelectedLeadIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  async function bulkDeleteSelected() {
+    if (selectedLeads.length === 0) return;
+    if (!confirm(`Delete ${selectedLeads.length} selected lead${selectedLeads.length === 1 ? "" : "s"}? This cannot be undone.`)) return;
+
+    setBulkDeleting(true);
+    try {
+      for (const lead of selectedLeads) {
+        await deleteLead(lead.id);
+      }
+      const selectedIdSet = new Set(selectedLeads.map((lead) => lead.id));
+      onChange((prev) => prev.filter((lead) => !selectedIdSet.has(lead.id)));
+      setSelectedLeadIds(new Set());
+      setToast({ msg: `${selectedLeads.length} lead${selectedLeads.length === 1 ? "" : "s"} deleted.`, tone: "ok" });
+    } catch (e) {
+      setToast({ msg: `Bulk delete failed: ${(e as Error).message}`, tone: "err" });
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
   return (
     <>
-      <TableCard.Root className="overflow-hidden">
+      <TableCard.Root className="overflow-hidden bg-primary ring-1 ring-secondary shadow-sm">
         <TableCard.Header
           title="All leads"
           badge={filtered.length}
-          description="Captured from Meta ad campaigns. Updates sync in real-time."
+          description="A clean operating view for Meta leads. Edit outcomes, follow-ups, ownership, and notes inline."
           contentTrailing={
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 size="sm"
                 aria-label="Search leads"
-                placeholder="Search by name, email, phone..."
+                placeholder="Search leads..."
                 icon={SearchLg}
                 value={query}
                 onChange={(value) => setQuery(value)}
@@ -238,6 +412,31 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
             </div>
           }
         />
+
+        {selectedLeadIds.size > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary bg-secondary px-5 py-3">
+            <div className="text-sm font-medium text-primary">
+              {selectedLeadIds.size} selected
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                color="secondary"
+                onClick={() => exportCsv(selectedLeads)}
+              >
+                Export selected
+              </Button>
+              <Button
+                size="sm"
+                color="secondary-destructive"
+                isLoading={bulkDeleting}
+                onClick={bulkDeleteSelected}
+              >
+                Delete selected
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Add Lead Form */}
         {showAddForm && (
@@ -300,11 +499,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         )}
 
         {/* Loading state */}
-        {loading && (
-          <div className="flex justify-center py-12">
-            <LoadingIndicator size="sm" label="Loading leads..." />
-          </div>
-        )}
+        {loading && <LeadsTableSkeleton />}
 
         {/* Empty state */}
         {!loading && filtered.length === 0 && (
@@ -321,26 +516,40 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
         {/* Table — scrollable, no row shrinking */}
         {!loading && filtered.length > 0 && (
-          <div className="overflow-x-auto">
-            <Table size="sm" aria-label="Leads table" className="min-w-[1230px]">
-              <Table.Header>
-                <Table.Head isRowHeader className="min-w-[220px]">
-                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1">
+          <div className="overflow-x-auto bg-primary">
+            <Table size="sm" aria-label="Leads table" className="min-w-[1940px]">
+              <Table.Header className="bg-primary/95 backdrop-blur-sm">
+                <Table.Head className="w-12 bg-primary/95">
+                  <Checkbox
+                    aria-label="Select all visible leads"
+                    size="md"
+                    isSelected={allVisibleSelected}
+                    isIndeterminate={!allVisibleSelected && someVisibleSelected}
+                    onChange={toggleVisibleSelection}
+                  />
+                </Table.Head>
+                <Table.Head className={cx("min-w-[150px] bg-primary/95", STICKY_DATE_CLASS)}>
+                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+                    Created
+                  </button>
+                </Table.Head>
+                <Table.Head isRowHeader className={cx("min-w-[180px] bg-primary/95", STICKY_NAME_CLASS)}>
+                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
                     Lead
                   </button>
                 </Table.Head>
-                <Table.Head className="min-w-[130px]">Contact</Table.Head>
-                <Table.Head className="min-w-[120px]">Source</Table.Head>
-                <Table.Head className="min-w-[150px]">
-                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1">
-                    Captured
-                  </button>
-                </Table.Head>
-                <Table.Head className="min-w-[110px]">Status</Table.Head>
-                <Table.Head className="min-w-[130px]">Follow Up 1</Table.Head>
-                <Table.Head className="min-w-[130px]">Follow Up 2</Table.Head>
-                <Table.Head className="min-w-[200px]">Notes</Table.Head>
-                <Table.Head className="w-10">{""}</Table.Head>
+                <Table.Head className="min-w-[220px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Email</Table.Head>
+                <Table.Head className="min-w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Phone</Table.Head>
+                <Table.Head className="min-w-[150px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Source</Table.Head>
+                <Table.Head className="min-w-[160px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Lead Status</Table.Head>
+                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Region</Table.Head>
+                <Table.Head className="min-w-[240px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Notes</Table.Head>
+                <Table.Head className="min-w-[170px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Next Follow-Up</Table.Head>
+                <Table.Head className="min-w-[170px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Final Follow-Up</Table.Head>
+                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Owner</Table.Head>
+                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Note 1</Table.Head>
+                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Note 2</Table.Head>
+                <Table.Head className="w-10 bg-primary/95">{""}</Table.Head>
               </Table.Header>
               <Table.Body>
                 {filtered.map((lead) => (
@@ -348,7 +557,9 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     key={lead.id}
                     lead={lead}
                     saving={savingLead[lead.id] || null}
-                    onNoteBlur={persistNote}
+                    isSelected={selectedLeadIds.has(lead.id)}
+                    onCrmFieldSave={persistCrmFields}
+                    onSelectionChange={toggleLeadSelection}
                     onStatusChange={changeStatus}
                     onFollowUpChange={changeFollowUp}
                     onFollowUp2Change={changeFollowUp2}
@@ -387,7 +598,9 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 function LeadRow({
   lead,
   saving,
-  onNoteBlur,
+  isSelected,
+  onCrmFieldSave,
+  onSelectionChange,
   onStatusChange,
   onFollowUpChange,
   onFollowUp2Change,
@@ -395,73 +608,88 @@ function LeadRow({
 }: {
   lead: Lead;
   saving: string | null;
-  onNoteBlur: (id: string, text: string) => void;
+  isSelected: boolean;
+  onCrmFieldSave: (
+    lead: Lead,
+    updates: Partial<Pick<Lead, "notes" | "location" | "sales_person" | "remark_1" | "remark_2">>,
+    savingKey: "notes" | "location" | "sales_person" | "remark_1" | "remark_2",
+    successMessage: string,
+  ) => void;
+  onSelectionChange: (id: string, checked: boolean) => void;
   onStatusChange: (id: string, status: string) => void;
   onFollowUpChange: (id: string, date: string) => void;
   onFollowUp2Change: (id: string, date: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const [note, setNote] = useState(lead.notes);
-  const initialNote = useRef(lead.notes);
+  const [draft, setDraft] = useState({
+    notes: lead.notes,
+    location: lead.location,
+    sales_person: lead.sales_person,
+    remark_1: lead.remark_1,
+    remark_2: lead.remark_2,
+  });
+  const initialDraft = useRef(draft);
 
   useEffect(() => {
-    setNote(lead.notes);
-    initialNote.current = lead.notes;
-  }, [lead.notes]);
+    const nextDraft = {
+      notes: lead.notes,
+      location: lead.location,
+      sales_person: lead.sales_person,
+      remark_1: lead.remark_1,
+      remark_2: lead.remark_2,
+    };
+    setDraft(nextDraft);
+    initialDraft.current = nextDraft;
+  }, [lead.location, lead.notes, lead.remark_1, lead.remark_2, lead.sales_person]);
 
-  function handleBlur() {
-    if (note === initialNote.current) return;
-    initialNote.current = note;
-    onNoteBlur(lead.id, note);
+  function handleFieldBlur(
+    field: "notes" | "location" | "sales_person" | "remark_1" | "remark_2",
+    successMessage: string,
+  ) {
+    if (draft[field] === initialDraft.current[field]) return;
+    const value = draft[field];
+    initialDraft.current = { ...initialDraft.current, [field]: value };
+    onCrmFieldSave(lead, { [field]: value }, field, successMessage);
   }
 
-  const isOverdue = lead.follow_up && new Date(lead.follow_up) < new Date(new Date().toDateString());
-  const isOverdue2 = lead.follow_up_2 && new Date(lead.follow_up_2) < new Date(new Date().toDateString());
-
   return (
-    <Table.Row>
-      <Table.Cell>
-        <div className="flex items-center gap-3">
-          <Avatar
-            size="sm"
-            initials={(lead.name || "?")
-              .split(" ")
-              .map((n) => n[0])
-              .slice(0, 2)
-              .join("")
-              .toUpperCase()}
-          />
-          <div className="min-w-0">
-            <div className="text-sm font-medium text-primary truncate">
-              {lead.name || "\u2014"}
-            </div>
-            <div className="text-xs text-tertiary truncate">{lead.email}</div>
-          </div>
+    <Table.Row className="h-auto bg-primary align-top hover:bg-secondary/40">
+      <Table.Cell className="align-top">
+        <Checkbox
+          aria-label={`Select ${lead.name || "lead"}`}
+          size="md"
+          isSelected={isSelected}
+          onChange={(checked) => onSelectionChange(lead.id, checked)}
+        />
+      </Table.Cell>
+      <Table.Cell className={cx("align-top", STICKY_DATE_CLASS)}>
+        <div className="space-y-1">
+          <div className="text-sm font-medium text-primary">{formatShortDate(lead.created_at)}</div>
+          <div className="text-xs text-tertiary">{formatDate(lead.created_at)}</div>
         </div>
       </Table.Cell>
-      <Table.Cell>
+      <Table.Cell className={cx("align-top", STICKY_NAME_CLASS)}>
+        <div className="space-y-1">
+          <div className="text-sm font-semibold text-primary">{lead.name || "\u2014"}</div>
+          <div className="text-xs text-tertiary">Contact record</div>
+        </div>
+      </Table.Cell>
+      <Table.Cell className="align-top">
+        <div className="max-w-[220px] truncate text-sm text-secondary">{lead.email || "\u2014"}</div>
+      </Table.Cell>
+      <Table.Cell className="align-top">
         <div className="text-sm text-secondary">{lead.phone || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell>
-        <Badge color="brand" size="sm" type="pill-color">
-          {lead.source || "\u2014"}
-        </Badge>
+      <Table.Cell className="align-top">
+        <span className={SOURCE_PILL_CLASS}>{lead.source || "\u2014"}</span>
       </Table.Cell>
-      <Table.Cell>
-        <div className="text-sm text-secondary">{formatDate(lead.created_at)}</div>
-      </Table.Cell>
-      <Table.Cell>
+      <Table.Cell className="align-top">
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
           className={cx(
-            "cursor-pointer rounded-full bg-transparent px-2.5 py-1 text-xs font-medium ring-1 ring-inset focus:outline-none focus:ring-2 focus:ring-focus-ring transition-colors",
-            lead.status === "New" && "text-utility-blue-300 ring-utility-blue-400/40",
-            lead.status === "Contacted" && "text-utility-yellow-300 ring-utility-yellow-400/40",
-            lead.status === "Hot" && "text-utility-red-300 ring-utility-red-400/40",
-            lead.status === "Won" && "text-utility-green-300 ring-utility-green-400/40",
-            lead.status === "Lost" && "text-fg-quaternary ring-border-secondary",
-            (!lead.status || !["New", "Contacted", "Hot", "Won", "Lost"].includes(lead.status)) && "text-fg-quaternary ring-border-secondary",
+            "w-full cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium shadow-xs outline-none transition-all focus:ring-4 focus:ring-brand/12",
+            getStatusClass(lead.status),
           )}
         >
           {STATUSES.map((s) => (
@@ -469,59 +697,113 @@ function LeadRow({
           ))}
         </select>
       </Table.Cell>
-      <Table.Cell>
+      <Table.Cell className="align-top">
+        <div className="relative">
+          <input
+            type="text"
+            value={draft.location}
+            onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
+            onBlur={() => handleFieldBlur("location", "Region saved.")}
+            placeholder="Add region"
+            className={CELL_INPUT_CLASS}
+          />
+          {saving === "location" && (
+            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
+          )}
+        </div>
+      </Table.Cell>
+      <Table.Cell className="align-top">
+        <div className="relative">
+          <textarea
+            value={draft.notes}
+            onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))}
+            onBlur={() => handleFieldBlur("notes", "Notes saved.")}
+            rows={2}
+            placeholder="Add notes..."
+            className={CELL_TEXTAREA_CLASS}
+          />
+          {saving === "notes" && (
+            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
+          )}
+        </div>
+      </Table.Cell>
+      <Table.Cell className="align-top">
         <div className="relative">
           <input
             type="date"
             value={lead.follow_up || ""}
             onChange={(e) => onFollowUpChange(lead.id, e.target.value)}
-            className={cx(
-              "w-full rounded-md border border-transparent bg-secondary px-2 py-1.5 text-xs text-primary placeholder-placeholder transition-colors",
-              "hover:border-primary focus:border-brand focus:bg-primary focus:outline-none focus:ring-2 focus:ring-focus-ring",
-              isOverdue && "ring-1 ring-utility-red-400 text-utility-red-600",
-            )}
+            className={CELL_INPUT_CLASS}
           />
+          <div className="mt-1 text-xs text-tertiary">{formatShortDate(lead.follow_up)}</div>
           {saving === "follow_up" && (
             <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
           )}
         </div>
       </Table.Cell>
-      <Table.Cell>
+      <Table.Cell className="align-top">
         <div className="relative">
           <input
             type="date"
             value={lead.follow_up_2 || ""}
             onChange={(e) => onFollowUp2Change(lead.id, e.target.value)}
-            className={cx(
-              "w-full rounded-md border border-transparent bg-secondary px-2 py-1.5 text-xs text-primary placeholder-placeholder transition-colors",
-              "hover:border-primary focus:border-brand focus:bg-primary focus:outline-none focus:ring-2 focus:ring-focus-ring",
-              isOverdue2 && "ring-1 ring-utility-red-400 text-utility-red-600",
-            )}
+            className={CELL_INPUT_CLASS}
           />
+          <div className="mt-1 text-xs text-tertiary">{formatShortDate(lead.follow_up_2)}</div>
           {saving === "follow_up_2" && (
             <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
           )}
         </div>
       </Table.Cell>
-      <Table.Cell>
+      <Table.Cell className="align-top">
         <div className="relative">
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            onBlur={handleBlur}
-            rows={1}
-            placeholder="Add a note..."
-            className="w-full min-w-[180px] resize-y rounded-md border border-transparent bg-secondary px-2.5 py-1.5 text-sm text-primary placeholder-placeholder hover:border-primary focus:border-brand focus:bg-primary focus:outline-none focus:ring-2 focus:ring-focus-ring transition-colors"
+          <input
+            type="text"
+            value={draft.sales_person}
+            onChange={(e) => setDraft((current) => ({ ...current, sales_person: e.target.value }))}
+            onBlur={() => handleFieldBlur("sales_person", "Owner saved.")}
+            placeholder="Assign owner"
+            className={CELL_INPUT_CLASS}
           />
-          {saving === "note" && (
+          {saving === "sales_person" && (
             <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
           )}
         </div>
       </Table.Cell>
-      <Table.Cell>
+      <Table.Cell className="align-top">
+        <div className="relative">
+          <input
+            type="text"
+            value={draft.remark_1}
+            onChange={(e) => setDraft((current) => ({ ...current, remark_1: e.target.value }))}
+            onBlur={() => handleFieldBlur("remark_1", "Note 1 saved.")}
+            placeholder="Add note"
+            className={CELL_INPUT_CLASS}
+          />
+          {saving === "remark_1" && (
+            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
+          )}
+        </div>
+      </Table.Cell>
+      <Table.Cell className="align-top">
+        <div className="relative">
+          <input
+            type="text"
+            value={draft.remark_2}
+            onChange={(e) => setDraft((current) => ({ ...current, remark_2: e.target.value }))}
+            onBlur={() => handleFieldBlur("remark_2", "Note 2 saved.")}
+            placeholder="Add note"
+            className={CELL_INPUT_CLASS}
+          />
+          {saving === "remark_2" && (
+            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
+          )}
+        </div>
+      </Table.Cell>
+      <Table.Cell className="align-top">
         <button
           onClick={() => onDelete(lead.id)}
-          className="rounded-md p-1.5 text-fg-quaternary hover:bg-utility-red-50 hover:text-utility-red-600 transition-colors"
+          className="rounded-lg p-2 text-fg-quaternary transition-colors hover:bg-utility-red-50 hover:text-utility-red-600"
           title="Delete lead"
           disabled={saving === "delete"}
         >

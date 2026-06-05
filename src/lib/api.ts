@@ -7,12 +7,120 @@ export type Lead = {
   phone: string;
   source: string;
   notes: string;
+  location: string;
+  sales_person: string;
+  remark_1: string;
+  remark_2: string;
   status: "New" | "Contacted" | "Hot" | "Won" | "Lost";
   follow_up: string | null;
   follow_up_2: string | null;
   created_at: string;
   updated_at: string;
 };
+
+const CRM_META_PREFIX = "__crm_meta__";
+
+type LeadNotesMeta = {
+  feedback: string;
+  location: string;
+  sales_person: string;
+  remark_1: string;
+  remark_2: string;
+};
+
+function parseLeadNotes(raw: string): LeadNotesMeta {
+  if (!raw) {
+    return {
+      feedback: "",
+      location: "",
+      sales_person: "",
+      remark_1: "",
+      remark_2: "",
+    };
+  }
+
+  if (!raw.startsWith(CRM_META_PREFIX)) {
+    return {
+      feedback: raw,
+      location: "",
+      sales_person: "",
+      remark_1: "",
+      remark_2: "",
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(raw.slice(CRM_META_PREFIX.length)) as Partial<LeadNotesMeta>;
+    return {
+      feedback: String(parsed.feedback ?? ""),
+      location: String(parsed.location ?? ""),
+      sales_person: String(parsed.sales_person ?? ""),
+      remark_1: String(parsed.remark_1 ?? ""),
+      remark_2: String(parsed.remark_2 ?? ""),
+    };
+  } catch {
+    return {
+      feedback: raw,
+      location: "",
+      sales_person: "",
+      remark_1: "",
+      remark_2: "",
+    };
+  }
+}
+
+function serializeLeadNotes(meta: Partial<LeadNotesMeta>): string {
+  const normalized: LeadNotesMeta = {
+    feedback: String(meta.feedback ?? ""),
+    location: String(meta.location ?? ""),
+    sales_person: String(meta.sales_person ?? ""),
+    remark_1: String(meta.remark_1 ?? ""),
+    remark_2: String(meta.remark_2 ?? ""),
+  };
+
+  const hasStructuredFields =
+    normalized.location ||
+    normalized.sales_person ||
+    normalized.remark_1 ||
+    normalized.remark_2;
+
+  if (!hasStructuredFields) return normalized.feedback;
+  return `${CRM_META_PREFIX}${JSON.stringify(normalized)}`;
+}
+
+function toDatabaseLeadUpdate(updates: Partial<Lead>) {
+  const {
+    id: _id,
+    created_at: _createdAt,
+    updated_at: _updatedAt,
+    location,
+    sales_person,
+    remark_1,
+    remark_2,
+    notes,
+    ...rest
+  } = updates;
+
+  const payload: Record<string, unknown> = { ...rest };
+  const hasNotesPayload =
+    location !== undefined ||
+    sales_person !== undefined ||
+    remark_1 !== undefined ||
+    remark_2 !== undefined ||
+    notes !== undefined;
+
+  if (hasNotesPayload) {
+    payload.notes = serializeLeadNotes({
+      feedback: notes,
+      location,
+      sales_person,
+      remark_1,
+      remark_2,
+    });
+  }
+
+  return payload;
+}
 
 const STORAGE_KEY = "meta_leads_apps_script_url";
 
@@ -28,13 +136,18 @@ export function setScriptUrl(url: string) {
 }
 
 function toLead(row: Record<string, unknown>): Lead {
+  const leadNotes = parseLeadNotes(String(row.notes ?? ""));
   return {
     id: String(row.id ?? ""),
     name: String(row.name ?? ""),
     email: String(row.email ?? ""),
     phone: String(row.phone ?? "N/A"),
     source: String(row.source ?? "Landing Page"),
-    notes: String(row.notes ?? ""),
+    notes: leadNotes.feedback,
+    location: leadNotes.location,
+    sales_person: leadNotes.sales_person,
+    remark_1: leadNotes.remark_1,
+    remark_2: leadNotes.remark_2,
     status: (row.status ?? "New") as Lead["status"],
     follow_up: (row.follow_up as string) || null,
     follow_up_2: (row.follow_up_2 as string) || null,
@@ -116,7 +229,7 @@ export async function addLead(lead: {
       email: lead.email,
       phone: lead.phone || "N/A",
       source: lead.source || "Landing Page",
-      notes: lead.notes || "",
+      notes: serializeLeadNotes({ feedback: lead.notes || "" }),
       status: lead.status || "New",
     })
     .select()
@@ -130,8 +243,10 @@ export async function updateLead(
   id: string,
   updates: Partial<Lead>
 ): Promise<Lead> {
+  const payload = toDatabaseLeadUpdate(updates);
+
   if (id.startsWith("sheet-")) {
-    const { id: _, ...rest } = updates as Lead;
+    const rest = payload as Record<string, unknown>;
     const insertPayload = {
       name: rest.name ?? "",
       email: rest.email ?? "",
@@ -156,7 +271,7 @@ export async function updateLead(
   const { data, error } = await supabase
     .from("leads")
     .update({
-      ...updates,
+      ...payload,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
