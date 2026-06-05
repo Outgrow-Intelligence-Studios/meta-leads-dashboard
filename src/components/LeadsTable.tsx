@@ -4,7 +4,7 @@ import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
 import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
-import { Checkbox } from "@/components/base/checkbox/checkbox";
+import { CheckboxBase } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
 import { Select } from "@/components/base/select/select";
 import { SelectItem } from "@/components/base/select/select-item";
@@ -105,6 +105,30 @@ function LeadsTableSkeleton() {
         ))}
       </div>
     </div>
+  );
+}
+
+function SelectionToggle({
+  checked,
+  indeterminate = false,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate?: boolean;
+  label: string;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={checked}
+      onClick={() => onChange(!checked)}
+      className="inline-flex items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2"
+    >
+      <CheckboxBase size="md" isSelected={checked} isIndeterminate={indeterminate} />
+    </button>
   );
 }
 
@@ -520,11 +544,10 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
             <Table size="sm" aria-label="Leads table" className="min-w-[1940px]">
               <Table.Header className="bg-primary/95 backdrop-blur-sm">
                 <Table.Head className="w-12 bg-primary/95">
-                  <Checkbox
-                    aria-label="Select all visible leads"
-                    size="md"
-                    isSelected={allVisibleSelected}
-                    isIndeterminate={!allVisibleSelected && someVisibleSelected}
+                  <SelectionToggle
+                    label="Select all visible leads"
+                    checked={allVisibleSelected}
+                    indeterminate={!allVisibleSelected && someVisibleSelected}
                     onChange={toggleVisibleSelection}
                   />
                 </Table.Head>
@@ -655,10 +678,9 @@ function LeadRow({
   return (
     <Table.Row className="h-auto bg-primary align-top hover:bg-secondary/40">
       <Table.Cell className="align-top">
-        <Checkbox
-          aria-label={`Select ${lead.name || "lead"}`}
-          size="md"
-          isSelected={isSelected}
+        <SelectionToggle
+          label={`Select ${lead.name || "lead"}`}
+          checked={isSelected}
           onChange={(checked) => onSelectionChange(lead.id, checked)}
         />
       </Table.Cell>
