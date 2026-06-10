@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import StatsCards from "./components/StatsCards";
 import LeadsTable from "./components/LeadsTable";
+import LeadNotifications from "./components/LeadNotifications";
 import SettingsModal from "./components/SettingsModal";
 import DashboardPage from "./pages/DashboardPage";
 import CampaignsPage from "./pages/CampaignsPage";
@@ -22,6 +23,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(getPageFromHash);
 
@@ -105,9 +107,12 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-primary text-primary antialiased">
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onCollapsedChange={setSidebarCollapsed} />
 
-      <main className="flex-1 min-w-0 bg-primary">
+      <main
+        className="min-w-0 flex-1 bg-primary transition-[padding] duration-300 ease-out"
+        style={{ paddingLeft: typeof window !== "undefined" && window.innerWidth >= 1024 ? (sidebarCollapsed ? 72 : 256) : 0 }}
+      >
         <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-secondary bg-secondary/60 px-6 py-4 shadow-xs backdrop-blur-xl">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-xs text-tertiary">
@@ -133,6 +138,8 @@ export default function App() {
                 Synced {lastSync.toLocaleTimeString()}
               </span>
             )}
+
+            <LeadNotifications leads={leads} />
 
             <Button
               size="sm"

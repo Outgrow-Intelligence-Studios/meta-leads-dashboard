@@ -101,6 +101,26 @@ export default function SettingsModal({ open, onClose, onSaved }: Props) {
                 </div>
               </Form>
             </div>
+
+            <div className="border-t border-secondary pt-4">
+              <div className="text-sm font-medium text-primary mb-2">Daily email digest</div>
+              <p className="text-xs text-tertiary mb-3">
+                The top-right notification center uses live lead data in the browser. The daily email summary runs from Vercel cron and Resend, so it must be configured with server-side environment variables.
+              </p>
+              <div className="rounded-lg bg-secondary ring-1 ring-secondary p-3 text-xs text-tertiary space-y-1.5">
+                <div className="font-medium text-secondary">Required Vercel env vars</div>
+                <ul className="space-y-1">
+                  <li><code className="rounded bg-primary px-1 py-0.5 ring-1 ring-secondary">RESEND_API_KEY</code></li>
+                  <li><code className="rounded bg-primary px-1 py-0.5 ring-1 ring-secondary">RESEND_FROM_EMAIL</code></li>
+                  <li><code className="rounded bg-primary px-1 py-0.5 ring-1 ring-secondary">RESEND_TO_EMAIL</code></li>
+                  <li><code className="rounded bg-primary px-1 py-0.5 ring-1 ring-secondary">SUPABASE_URL</code></li>
+                  <li><code className="rounded bg-primary px-1 py-0.5 ring-1 ring-secondary">SUPABASE_SERVICE_ROLE_KEY</code></li>
+                </ul>
+                <div className="pt-1">
+                  Cron endpoint: <code className="rounded bg-primary px-1 py-0.5 ring-1 ring-secondary">/api/daily-leads-summary</code>
+                </div>
+              </div>
+            </div>
           </div>
         </Dialog>
       </Modal>
