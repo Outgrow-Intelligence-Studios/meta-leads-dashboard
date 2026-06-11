@@ -36,7 +36,7 @@ export default function SettingsPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] max-w-md mx-auto text-center space-y-6 animate-in fade-in duration-500">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-utility-brand-50 ring-8 ring-utility-brand-50/50">
-          <Lock01 className="size-8 text-utility-brand-600" />
+          <Lock01 className="size-8 text-brand" />
         </div>
         <div>
           <h2 className="text-2xl font-bold text-primary">Protected Area</h2>

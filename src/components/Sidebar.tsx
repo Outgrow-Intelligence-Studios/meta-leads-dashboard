@@ -70,7 +70,7 @@ function NavLink({
       </span>
 
       {item.locked && !collapsed && (
-        <Lock01 className="ml-auto size-3.5 text-tertiary/50" />
+        <Lock01 className="ml-auto size-3.5 text-brand" />
       )}
 
       {collapsed && active && (
