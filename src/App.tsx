@@ -3,11 +3,11 @@ import Sidebar from "./components/Sidebar";
 import StatsCards from "./components/StatsCards";
 import LeadsTable from "./components/LeadsTable";
 import LeadNotifications from "./components/LeadNotifications";
-import SettingsModal from "./components/SettingsModal";
 import DashboardPage from "./pages/DashboardPage";
 import CampaignsPage from "./pages/CampaignsPage";
 import AudiencePage from "./pages/AudiencePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import SettingsPage from "./pages/SettingsPage";
 import { fetchLeads, getScriptUrl, type Lead } from "./lib/api";
 import { Button } from "@/components/base/buttons/button";
 import { ChevronRight, RefreshCw01, Settings01 } from "@untitledui/icons";
@@ -22,19 +22,13 @@ export default function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(getPageFromHash);
 
   useEffect(() => {
     const onHashChange = () => {
-      const hash = window.location.hash.replace("#", "");
-      if (hash === "/settings") {
-        setSettingsOpen(true);
-      } else {
-        setCurrentPage(getPageFromHash());
-      }
+      setCurrentPage(getPageFromHash());
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
@@ -57,12 +51,6 @@ export default function App() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  const handleSettingsSaved = useCallback(() => {
-    setSettingsOpen(false);
-    window.location.hash = `#/${currentPage}`;
-    loadData();
-  }, [loadData, currentPage]);
 
   const hasUrl = Boolean(getScriptUrl());
 
@@ -92,6 +80,8 @@ export default function App() {
     pageContent = <AudiencePage />;
   } else if (currentPage === "analytics") {
     pageContent = <AnalyticsPage leads={leads} />;
+  } else if (currentPage === "settings") {
+    pageContent = <SettingsPage />;
   } else {
     pageContent = (
       <>
@@ -153,7 +143,7 @@ export default function App() {
 
             <Button
               size="sm"
-              color="primary"
+              color={currentPage === "settings" ? "primary" : "secondary"}
               iconLeading={Settings01}
               onClick={() => {
                 window.location.hash = "#/settings";
@@ -216,15 +206,6 @@ export default function App() {
           </footer>
         </div>
       </main>
-
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => {
-          setSettingsOpen(false);
-          window.location.hash = `#/${currentPage}`;
-        }}
-        onSaved={handleSettingsSaved}
-      />
     </div>
   );
 }
