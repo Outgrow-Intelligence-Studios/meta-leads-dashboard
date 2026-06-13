@@ -25,7 +25,7 @@ const CELL_INPUT_CLASS =
 const CELL_TEXTAREA_CLASS =
   "w-full min-w-[220px] resize-none rounded-lg border border-secondary bg-primary px-3 py-2 text-sm text-primary shadow-xs outline-none transition-all placeholder:text-placeholder hover:border-primary focus:border-brand focus:ring-4 focus:ring-brand/12";
 const SOURCE_PILL_CLASS =
-  "inline-flex items-center rounded-md border border-secondary bg-secondary px-2.5 py-1 text-xs font-medium text-secondary";
+  "inline-flex items-center rounded-md border border-secondary bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary";
 
 function getStatusClass(status: Lead["status"]) {
   if (status === "New") return "text-utility-blue-700 ring-utility-blue-200 bg-utility-blue-50";
@@ -79,9 +79,9 @@ function LeadsTableSkeleton() {
   return (
     <div className="overflow-hidden w-full bg-primary">
       <div className="min-w-0 w-full">
-        <div className="grid grid-cols-[40px_100px_1fr_110px_110px_110px_1fr_1fr_110px_100px] border-b border-secondary bg-primary/95 px-2 py-3">
-          {["", "Created", "Lead", "Phone", "Source", "Lead Status", "Region", "Owner", "Next Follow-Up", ""].map((label, index) => (
-            <div key={`${label}-${index}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+        <div className="grid grid-cols-[40px_100px_1fr_110px_110px_110px_1fr_1fr_110px_100px] border-b border-secondary bg-[#101828] px-2 py-3">
+          {["", "Created", "Lead", "Phone", "Source", "Status", "Region", "Owner", "Followup", ""].map((label, index) => (
+            <div key={`${label}-${index}`} className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
               {label}
             </div>
           ))}
@@ -735,8 +735,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         {!loading && filtered.length > 0 && (
           <div className="overflow-hidden w-full bg-primary">
             <Table size="sm" aria-label="Leads table" className="w-full table-striped-columns">
-              <Table.Header className="bg-primary/95 backdrop-blur-sm">
-                <Table.Head className="w-10 bg-primary/95 px-2">
+              <Table.Header className="bg-[#101828] text-white border-b border-[#101828]">
+                <Table.Head className="w-10 bg-[#101828] px-2 text-white">
                   <SelectionToggle
                     label="Select all visible leads"
                     checked={allVisibleSelected}
@@ -744,23 +744,23 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     onChange={toggleVisibleSelection}
                   />
                 </Table.Head>
-                <Table.Head className="w-[100px] bg-primary/95 px-2">
-                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary cursor-pointer">
+                <Table.Head className="w-[100px] bg-[#101828] px-2 text-white">
+                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-white cursor-pointer">
                     Created
                   </button>
                 </Table.Head>
-                <Table.Head isRowHeader className="bg-primary/95 px-2">
-                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary cursor-pointer">
+                <Table.Head isRowHeader className="bg-[#101828] px-2 text-white">
+                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-white cursor-pointer">
                     Lead
                   </button>
                 </Table.Head>
-                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Phone</Table.Head>
-                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Source</Table.Head>
-                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Lead Status</Table.Head>
-                <Table.Head className="px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Region</Table.Head>
-                <Table.Head className="px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Owner</Table.Head>
-                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Next Follow-Up</Table.Head>
-                <Table.Head className="w-[100px] bg-primary/95 px-2 text-right">{""}</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Phone</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Source</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Status</Table.Head>
+                <Table.Head className="px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Region</Table.Head>
+                <Table.Head className="px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Owner</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Followup</Table.Head>
+                <Table.Head className="w-[100px] bg-[#101828] px-2 text-right">{""}</Table.Head>
               </Table.Header>
               <Table.Body>
                 {paginatedLeads.map((lead) => (
@@ -858,14 +858,11 @@ function LeadRow({
         />
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="space-y-0.5">
-          <div className="text-sm font-medium text-primary">{formatShortDate(lead.created_at)}</div>
-          <div className="text-[11px] text-tertiary">{formatDate(lead.created_at)}</div>
-        </div>
+        <div className="text-xs font-medium text-primary whitespace-nowrap">{formatShortDate(lead.created_at)}</div>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="flex items-center justify-between gap-1.5 min-w-0">
-          <div className="text-sm font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
+          <div className="text-xs font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
           <button
             onClick={() => onCopy(lead)}
             title="Copy lead details to clipboard"
@@ -876,7 +873,7 @@ function LeadRow({
         </div>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-sm text-secondary truncate">{lead.phone || "\u2014"}</div>
+        <div className="text-xs text-secondary truncate">{lead.phone || "\u2014"}</div>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <span className={cx(SOURCE_PILL_CLASS, "truncate max-w-full block text-center")}>{lead.source || "\u2014"}</span>
@@ -896,13 +893,13 @@ function LeadRow({
         </select>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-sm text-secondary truncate">{lead.location || "\u2014"}</div>
+        <div className="text-xs text-secondary truncate">{lead.location || "\u2014"}</div>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-sm text-secondary truncate">{lead.sales_person || "\u2014"}</div>
+        <div className="text-xs text-secondary truncate">{lead.sales_person || "\u2014"}</div>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-sm text-secondary truncate">
+        <div className="text-xs text-secondary truncate">
           {lead.follow_up ? formatShortDate(lead.follow_up) : "\u2014"}
         </div>
       </Table.Cell>
