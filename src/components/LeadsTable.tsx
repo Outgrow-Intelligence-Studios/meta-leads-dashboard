@@ -79,7 +79,7 @@ function LeadsTableSkeleton() {
   return (
     <div className="overflow-hidden w-full bg-primary">
       <div className="min-w-0 w-full">
-        <div className="grid grid-cols-[48px_100px_140px_110px_110px_110px_100px_100px_110px_100px] border-b border-secondary bg-primary/95 px-3 py-3">
+        <div className="grid grid-cols-[40px_100px_1fr_110px_110px_110px_1fr_1fr_110px_100px] border-b border-secondary bg-primary/95 px-2 py-3">
           {["", "Created", "Lead", "Phone", "Source", "Lead Status", "Region", "Owner", "Next Follow-Up", ""].map((label, index) => (
             <div key={`${label}-${index}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
               {label}
@@ -89,7 +89,7 @@ function LeadsTableSkeleton() {
         {Array.from({ length: 6 }).map((_, rowIndex) => (
           <div
             key={rowIndex}
-            className="grid grid-cols-[48px_100px_140px_110px_110px_110px_100px_100px_110px_100px] items-center border-b border-secondary px-3 py-4"
+            className="grid grid-cols-[40px_100px_1fr_110px_110px_110px_1fr_1fr_110px_100px] items-center border-b border-secondary px-2 py-4"
           >
             <SkeletonBar className="mt-1 h-5 w-5 rounded-md" />
             <div className="space-y-1.5">
@@ -749,7 +749,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     Created
                   </button>
                 </Table.Head>
-                <Table.Head isRowHeader className="w-[140px] bg-primary/95 px-2">
+                <Table.Head isRowHeader className="bg-primary/95 px-2">
                   <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary cursor-pointer">
                     Lead
                   </button>
@@ -757,8 +757,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Phone</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Source</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Lead Status</Table.Head>
-                <Table.Head className="w-[100px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Region</Table.Head>
-                <Table.Head className="w-[100px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Owner</Table.Head>
+                <Table.Head className="px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Region</Table.Head>
+                <Table.Head className="px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Owner</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Next Follow-Up</Table.Head>
                 <Table.Head className="w-[100px] bg-primary/95 px-2 text-right">{""}</Table.Head>
               </Table.Header>
@@ -850,20 +850,20 @@ function LeadRow({
 }) {
   return (
     <Table.Row className={cx("group h-auto align-middle", getRowBgClass(isSelected))}>
-      <Table.Cell className={cx("align-middle py-2 px-2 w-10", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <SelectionToggle
           label={`Select ${lead.name || "lead"}`}
           checked={isSelected}
           onChange={(checked) => onSelectionChange(lead.id, checked)}
         />
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="space-y-0.5">
           <div className="text-sm font-medium text-primary">{formatShortDate(lead.created_at)}</div>
           <div className="text-[11px] text-tertiary">{formatDate(lead.created_at)}</div>
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[140px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="flex items-center justify-between gap-1.5 min-w-0">
           <div className="text-sm font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
           <button
@@ -875,13 +875,13 @@ function LeadRow({
           </button>
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="text-sm text-secondary truncate">{lead.phone || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <span className={cx(SOURCE_PILL_CLASS, "truncate max-w-full block text-center")}>{lead.source || "\u2014"}</span>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
@@ -895,18 +895,18 @@ function LeadRow({
           ))}
         </select>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="text-sm text-secondary truncate">{lead.location || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="text-sm text-secondary truncate">{lead.sales_person || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="text-sm text-secondary truncate">
           {lead.follow_up ? formatShortDate(lead.follow_up) : "\u2014"}
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px] text-right", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 text-right", getCellBgClass(isSelected, false))}>
         <Button
           size="xs"
           color="secondary"
