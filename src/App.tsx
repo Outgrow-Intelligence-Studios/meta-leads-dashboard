@@ -12,7 +12,7 @@ import SettingsPage from "./pages/SettingsPage";
 import { fetchLeads, getScriptUrl, type Lead } from "./lib/api";
 import { Button } from "@/components/base/buttons/button";
 import { ChevronRight, RefreshCw01, Settings01, X } from "@untitledui/icons";
-import oiLogo from "./assets/oi-logo.svg";
+import oiLogo from "./assets/oi-logo.png";
 
 function getPageFromHash(): string {
   const hash = window.location.hash.replace("#", "");

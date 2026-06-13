@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { isAuthorizedEmail } from '@/lib/auth'
+import ogLogo from '@/assets/oi-logo.png'
 
 const errorMessages: Record<string, string> = {
   unauthorized: 'This email address is not authorized to access this dashboard.',
@@ -161,7 +162,7 @@ export default function LoginCard({ onAuthenticated }: { onAuthenticated: () => 
         <p className="mt-6 text-center text-xs text-neutral-600">
           Powered by{' '}
           <img
-            src="https://www.letsoutgrow.com/oglogo.png"
+            src={ogLogo}
             alt="Outgrow"
             className="inline h-3 opacity-60"
           />
