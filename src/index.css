@@ -146,7 +146,16 @@
   .text-tertiary_hover { color: var(--color-text-tertiary_hover, #344054); }
   .text-quaternary { color: var(--color-text-quaternary, #98a2b3); }
   .text-placeholder { color: var(--color-text-placeholder, #667085); }
+
+  /* Hover state overrides */
+  .hover\:text-primary:hover { color: var(--color-text-primary, #101828); }
+  .hover\:text-secondary:hover { color: var(--color-text-secondary, #344054); }
+  .hover\:text-secondary_hover:hover { color: var(--color-text-secondary_hover, #101828); }
+  .hover\:text-tertiary:hover { color: var(--color-text-tertiary, #475467); }
+  .hover\:text-tertiary_hover:hover { color: var(--color-text-tertiary_hover, #344054); }
+  .hover\:text-quaternary:hover { color: var(--color-text-quaternary, #98a2b3); }
 }
+
 
 @keyframes fade-in {
   from { opacity: 0; }
@@ -216,3 +225,10 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #98a2b3;
 }
+
+/* Striped columns in tables */
+.table-striped-columns td:nth-child(even),
+.table-striped-columns th:nth-child(even) {
+  background-color: var(--color-surface-deep);
+}
+

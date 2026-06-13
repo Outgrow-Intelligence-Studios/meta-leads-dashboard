@@ -46,7 +46,7 @@ function NavLink({
         collapsed ? "h-11 w-11 justify-center" : "h-11 px-3",
         active
           ? "bg-[#ed1c24]/10 text-[#ed1c24]"
-          : "text-tertiary hover:bg-primary_hover hover:text-primary",
+          : "text-tertiary hover:bg-[#ed1c24]/5 hover:text-[#ed1c24]",
       )}
     >
       {active && !collapsed && (
@@ -188,7 +188,7 @@ export default function Sidebar({
               onClick={() => onCollapsedChange(!collapsed)}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               className={cx(
-                "flex items-center gap-3 rounded-xl text-sm font-medium text-tertiary transition-all duration-200 hover:bg-primary_hover hover:text-primary",
+                "flex items-center gap-3 rounded-xl text-sm font-medium text-tertiary transition-all duration-200 hover:bg-[#ed1c24]/5 hover:text-[#ed1c24]",
                 collapsed ? "h-11 w-11 justify-center" : "h-11 w-full px-3",
               )}
             >

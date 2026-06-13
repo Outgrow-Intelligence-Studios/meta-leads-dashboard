@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Download01, Plus, SearchLg } from "@untitledui/icons";
+import { Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
 import { Badge } from "@/components/base/badges/badges";
@@ -132,12 +132,93 @@ function SelectionToggle({
   );
 }
 
+function PaginationControls({
+  page,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+  position = "bottom",
+}: {
+  page: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (p: number) => void;
+  position?: "top" | "bottom";
+}) {
+  const startItem = (page - 1) * pageSize + 1;
+  const endItem = Math.min(page * pageSize, totalItems);
+  const borderClass = position === "top" ? "border-b border-secondary" : "border-t border-secondary";
+
+  return (
+    <div className={cx("flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-3 bg-primary", borderClass)}>
+      <div className="text-xs text-tertiary">
+        Showing <span className="font-semibold text-primary">{totalItems === 0 ? 0 : startItem}</span> to{" "}
+        <span className="font-semibold text-primary">{endItem}</span> of{" "}
+        <span className="font-semibold text-primary">{totalItems}</span> leads
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          size="xs"
+          color="secondary"
+          isDisabled={page === 1}
+          onClick={() => onPageChange(page - 1)}
+          iconLeading={ChevronLeft}
+        >
+          Previous
+        </Button>
+        <div className="flex items-center gap-1">
+          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            let pageNum = i + 1;
+            if (page > 3 && totalPages > 5) {
+              pageNum = page - 3 + i;
+              if (pageNum + (4 - i) > totalPages) {
+                pageNum = totalPages - 4 + i;
+              }
+            }
+            return (
+              <button
+                key={pageNum}
+                onClick={() => onPageChange(pageNum)}
+                className={cx(
+                  "size-7 text-xs font-semibold rounded-md border transition-all",
+                  page === pageNum
+                    ? "bg-[#ed1c24]/10 border-[#ed1c24] text-[#ed1c24]"
+                    : "bg-primary border-secondary text-tertiary hover:bg-secondary hover:text-primary"
+                )}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+        </div>
+        <Button
+          size="xs"
+          color="secondary"
+          isDisabled={page === totalPages}
+          onClick={() => onPageChange(page + 1)}
+          iconTrailing={ChevronRight}
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function LeadsTable({ leads, onChange, loading }: Props) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<"created_at" | "name">("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [savingLead, setSavingLead] = useState<Record<string, string | null>>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query, statusFilter]);
   const [toast, setToast] = useState<{ msg: string; tone: "ok" | "err" } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
@@ -349,19 +430,50 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  const handleCopyLead = useCallback((lead: Lead) => {
+    const lines = [];
+    lines.push(`📋 *Meta Lead Details*`);
+    if (lead.name) lines.push(`👤 *Name:* ${lead.name}`);
+    if (lead.phone) lines.push(`📞 *Phone:* ${lead.phone}`);
+    if (lead.email) lines.push(`✉️ *Email:* ${lead.email}`);
+    if (lead.source) lines.push(`🌐 *Source:* ${lead.source}`);
+    if (lead.status) lines.push(`🏷️ *Status:* ${lead.status}`);
+    if (lead.created_at) lines.push(`📅 *Created:* ${new Date(lead.created_at).toLocaleDateString()}`);
+    if (lead.location) lines.push(`📍 *Region:* ${lead.location}`);
+    if (lead.sales_person) lines.push(`💼 *Owner:* ${lead.sales_person}`);
+    if (lead.notes) lines.push(`📝 *Notes:* ${lead.notes}`);
+    if (lead.remark_1) lines.push(`📌 *Note 1:* ${lead.remark_1}`);
+    if (lead.remark_2) lines.push(`📌 *Note 2:* ${lead.remark_2}`);
+
+    const textToCopy = lines.join("\n");
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        setToast({ msg: `Lead details copied to clipboard!`, tone: "ok" });
+      })
+      .catch((err) => {
+        setToast({ msg: `Failed to copy: ${err}`, tone: "err" });
+      });
+  }, []);
+
+  const totalItems = filtered.length;
+  const totalPages = Math.max(Math.ceil(totalItems / pageSize), 1);
+  const paginatedLeads = useMemo(() => {
+    return filtered.slice((page - 1) * pageSize, page * pageSize);
+  }, [filtered, page, pageSize]);
+
   const selectedLeads = useMemo(
     () => filtered.filter((lead) => selectedLeadIds.has(lead.id)),
     [filtered, selectedLeadIds],
   );
 
-  const allVisibleSelected = filtered.length > 0 && filtered.every((lead) => selectedLeadIds.has(lead.id));
-  const someVisibleSelected = filtered.some((lead) => selectedLeadIds.has(lead.id));
+  const allVisibleSelected = paginatedLeads.length > 0 && paginatedLeads.every((lead) => selectedLeadIds.has(lead.id));
+  const someVisibleSelected = paginatedLeads.some((lead) => selectedLeadIds.has(lead.id));
 
   function toggleVisibleSelection(checked: boolean) {
     setSelectedLeadIds((prev) => {
       const next = new Set(prev);
-      if (checked) filtered.forEach((lead) => next.add(lead.id));
-      else filtered.forEach((lead) => next.delete(lead.id));
+      if (checked) paginatedLeads.forEach((lead) => next.add(lead.id));
+      else paginatedLeads.forEach((lead) => next.delete(lead.id));
       return next;
     });
   }
@@ -401,7 +513,6 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         <TableCard.Header
           title="All leads"
           badge={filtered.length}
-          description="A clean operating view for Meta leads. Edit outcomes, follow-ups, ownership, and notes inline."
           contentTrailing={
             <div className="flex flex-wrap items-center gap-2">
               <Input
@@ -538,10 +649,22 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
           </EmptyState>
         )}
 
+        {/* Pagination controls top */}
+        {!loading && filtered.length > 0 && (
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            position="top"
+          />
+        )}
+
         {/* Table — scrollable, no row shrinking */}
         {!loading && filtered.length > 0 && (
           <div className="overflow-x-auto bg-primary">
-            <Table size="sm" aria-label="Leads table" className="min-w-[1940px]">
+            <Table size="sm" aria-label="Leads table" className="min-w-[1940px] table-striped-columns">
               <Table.Header className="bg-primary/95 backdrop-blur-sm">
                 <Table.Head className="w-12 bg-primary/95">
                   <SelectionToggle
@@ -575,7 +698,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 <Table.Head className="w-10 bg-primary/95">{""}</Table.Head>
               </Table.Header>
               <Table.Body>
-                {filtered.map((lead) => (
+                {paginatedLeads.map((lead) => (
                   <LeadRow
                     key={lead.id}
                     lead={lead}
@@ -587,11 +710,24 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     onFollowUpChange={changeFollowUp}
                     onFollowUp2Change={changeFollowUp2}
                     onDelete={removeLead}
+                    onCopy={handleCopyLead}
                   />
                 ))}
               </Table.Body>
             </Table>
           </div>
+        )}
+
+        {/* Pagination controls bottom */}
+        {!loading && filtered.length > 0 && (
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            position="bottom"
+          />
         )}
       </TableCard.Root>
 
@@ -628,6 +764,7 @@ function LeadRow({
   onFollowUpChange,
   onFollowUp2Change,
   onDelete,
+  onCopy,
 }: {
   lead: Lead;
   saving: string | null;
@@ -643,6 +780,7 @@ function LeadRow({
   onFollowUpChange: (id: string, date: string) => void;
   onFollowUp2Change: (id: string, date: string) => void;
   onDelete: (id: string) => void;
+  onCopy: (lead: Lead) => void;
 }) {
   const [draft, setDraft] = useState({
     notes: lead.notes,
@@ -691,9 +829,18 @@ function LeadRow({
         </div>
       </Table.Cell>
       <Table.Cell className={cx("align-top", STICKY_NAME_CLASS)}>
-        <div className="space-y-1">
-          <div className="text-sm font-semibold text-primary">{lead.name || "\u2014"}</div>
-          <div className="text-xs text-tertiary">Contact record</div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0">
+            <div className="text-sm font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
+            <div className="text-xs text-tertiary">Contact record</div>
+          </div>
+          <button
+            onClick={() => onCopy(lead)}
+            title="Copy lead details to clipboard"
+            className="p-1 rounded text-tertiary hover:text-[#ed1c24] hover:bg-[#ed1c24]/5 transition-all cursor-pointer shrink-0 mt-0.5"
+          >
+            <Copy01 className="size-3.5" />
+          </button>
         </div>
       </Table.Cell>
       <Table.Cell className="align-top">
