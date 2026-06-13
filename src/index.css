@@ -1,128 +1,128 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
-  /* Background colors - dark theme (tiered black tones for depth) */
-  --color-primary: #0a0a0a;
-  --color-primary_hover: #1a1a1a;
-  --color-primary_alt: #050505;
-  --color-primary-solid: #ffffff;
-  --color-secondary: #141414;
-  --color-secondary_hover: #1f1f1f;
-  --color-secondary_alt: #1a1a1a;
-  --color-secondary-solid: #262626;
-  --color-tertiary: #1f1f1f;
-  --color-overlay: rgba(0, 0, 0, 0.7);
-  --color-border-secondary: #1f1f1f;
-  --color-border-primary: #2a2a2a;
-  --color-bg-primary-solid: #141414;
+  /* Background colors - light theme (crisp white and soft greys for depth) */
+  --color-primary: #ffffff;
+  --color-primary_hover: #f9fafb;
+  --color-primary_alt: #f9fafb;
+  --color-primary-solid: #101828;
+  --color-secondary: #f2f4f7;
+  --color-secondary_hover: #eaecf0;
+  --color-secondary_alt: #eaecf0;
+  --color-secondary-solid: #eaecf0;
+  --color-tertiary: #f8f9fa;
+  --color-overlay: rgba(16, 24, 40, 0.4);
+  --color-border-secondary: #eaecf0;
+  --color-border-primary: #d0d5dd;
+  --color-bg-primary-solid: #ffffff;
 
   /* Tiered surface tones (deepest → most elevated) */
-  --color-surface-deepest: #000000;
-  --color-surface-deep: #0a0a0a;
-  --color-surface-base: #141414;
-  --color-surface-raised: #1a1a1a;
-  --color-surface-overlay: #1f1f1f;
+  --color-surface-deepest: #f9fafb;
+  --color-surface-deep: #f2f4f7;
+  --color-surface-base: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #ffffff;
 
   /* Text colors - separate from bg colors */
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #e5e5e5;
-  --color-text-secondary_hover: #ffffff;
-  --color-text-tertiary: #a3a3a3;
-  --color-text-tertiary_hover: #cccccc;
-  --color-text-quaternary: #666666;
-  --color-text-placeholder: #555555;
-  --color-text-display-xs: #ffffff;
+  --color-text-primary: #101828;
+  --color-text-secondary: #344054;
+  --color-text-secondary_hover: #101828;
+  --color-text-tertiary: #475467;
+  --color-text-tertiary_hover: #344054;
+  --color-text-quaternary: #98a2b3;
+  --color-text-placeholder: #667085;
+  --color-text-display-xs: #101828;
   --color-text-tooltip: #ffffff;
-  --color-text-featured: #ffffff;
-  --color-text-neutral-500: #a3a3a3;
+  --color-text-featured: #101828;
+  --color-text-neutral-500: #667085;
 
   /* Foreground (icon) colors */
-  --color-fg-quaternary: #555555;
-  --color-fg-quaternary_hover: #888888;
-  --color-fg-secondary: #e5e5e5;
-  --color-fg-secondary_hover: #ffffff;
+  --color-fg-quaternary: #98a2b3;
+  --color-fg-quaternary_hover: #667085;
+  --color-fg-secondary: #344054;
+  --color-fg-secondary_hover: #101828;
   --color-fg-white: #ffffff;
-  --color-fg-brand-primary: #ef4444;
-  --color-fg-brand-secondary: #f87171;
-  --color-fg-brand-secondary_alt: #fca5a5;
-  --color-fg-error-primary: #ef4444;
-  --color-fg-error-secondary: #f87171;
-  --color-fg-success-primary: #22c55e;
-  --color-fg-success-secondary: #4ade80;
-  --color-fg-warning-primary: #f59e0b;
+  --color-fg-brand-primary: #ed1c24;
+  --color-fg-brand-secondary: #f04438;
+  --color-fg-brand-secondary_alt: #fda29b;
+  --color-fg-error-primary: #d92d20;
+  --color-fg-error-secondary: #f04438;
+  --color-fg-success-primary: #039855;
+  --color-fg-success-secondary: #12b76a;
+  --color-fg-warning-primary: #dc6803;
 
   /* Brand colors - RED accent */
-  --color-brand: #ef4444;
-  --color-brand-solid: #dc2626;
-  --color-brand-solid_hover: #b91c1c;
-  --color-brand-secondary: rgba(239, 68, 68, 0.1);
-  --color-brand-primary_alt: #f87171;
-  --color-brand-50: rgba(239, 68, 68, 0.05);
-  --color-brand-secondary_alt: #fca5a5;
+  --color-brand: #ed1c24;
+  --color-brand-solid: #d91920;
+  --color-brand-solid_hover: #b8141a;
+  --color-brand-secondary: rgba(237, 28, 36, 0.08);
+  --color-brand-primary_alt: #f04438;
+  --color-brand-50: rgba(237, 28, 36, 0.04);
+  --color-brand-secondary_alt: #fda29b;
 
   /* Error colors */
-  --color-error: #ef4444;
-  --color-error-solid: #dc2626;
-  --color-error-solid_hover: #b91c1c;
-  --color-error-primary: rgba(239, 68, 68, 0.1);
-  --color-error-secondary: rgba(239, 68, 68, 0.05);
-  --color-error-subtle: rgba(239, 68, 68, 0.3);
+  --color-error: #d92d20;
+  --color-error-solid: #d92d20;
+  --color-error-solid_hover: #b42318;
+  --color-error-primary: #fef3f2;
+  --color-error-secondary: #fda29b;
+  --color-error-subtle: #fecdca;
 
   /* Success colors */
-  --color-success: #22c55e;
-  --color-success-solid: #16a34a;
-  --color-success-secondary: rgba(34, 197, 94, 0.1);
+  --color-success: #12b76a;
+  --color-success-solid: #07965c;
+  --color-success-secondary: #ecfdf3;
 
   /* Warning colors */
-  --color-warning: #f59e0b;
-  --color-warning-solid: #d97706;
-  --color-warning-secondary: rgba(245, 158, 11, 0.1);
+  --color-warning: #f79009;
+  --color-warning-solid: #d06900;
+  --color-warning-secondary: #fffaeb;
 
   /* Focus ring */
-  --color-focus-ring: #ef4444;
+  --color-focus-ring: #ed1c24;
 
   /* Alpha black for overlays */
-  --color-alpha-black: rgba(0, 0, 0, 0.3);
+  --color-alpha-black: rgba(0, 0, 0, 0.08);
 
   /* Utility colors - stay light for badge/status visibility */
-  --color-utility-blue-50: #eff6ff;
-  --color-utility-blue-100: #dbeafe;
-  --color-utility-blue-200: #bfdbfe;
-  --color-utility-green-50: #f0fdf4;
-  --color-utility-green-100: #dcfce7;
-  --color-utility-green-200: #bbf7d0;
-  --color-utility-green-500: #22c55e;
-  --color-utility-green-600: #16a34a;
-  --color-utility-green-700: #15803d;
-  --color-utility-neutral-50: #fafafa;
-  --color-utility-neutral-100: #f5f5f5;
-  --color-utility-neutral-200: #e5e5e5;
-  --color-utility-neutral-300: #d4d4d4;
-  --color-utility-neutral-400: #a3a3a3;
-  --color-utility-neutral-500: #737373;
-  --color-utility-neutral-600: #525252;
-  --color-utility-neutral-700: #404040;
-  --color-utility-red-50: #fef2f2;
-  --color-utility-red-100: #fee2e2;
-  --color-utility-red-200: #fecaca;
-  --color-utility-red-400: #f87171;
-  --color-utility-red-500: #ef4444;
-  --color-utility-red-600: #dc2626;
-  --color-utility-red-700: #b91c1c;
-  --color-utility-yellow-50: #fffbeb;
-  --color-utility-yellow-100: #fef3c7;
-  --color-utility-yellow-200: #fde68a;
-  --color-utility-yellow-400: #fbbf24;
-  --color-utility-yellow-500: #f59e0b;
-  --color-utility-yellow-600: #d97706;
-  --color-utility-yellow-700: #b45309;
-  --color-utility-brand-50: #fef2f2;
-  --color-utility-brand-100: #fee2e2;
-  --color-utility-brand-200: #fecaca;
-  --color-utility-brand-600: #dc2626;
+  --color-utility-blue-50: #f0f9ff;
+  --color-utility-blue-100: #e0f2fe;
+  --color-utility-blue-200: #bae6fd;
+  --color-utility-green-50: #ecfdf3;
+  --color-utility-green-100: #d1fadf;
+  --color-utility-green-200: #a6f4c5;
+  --color-utility-green-500: #12b76a;
+  --color-utility-green-600: #039855;
+  --color-utility-green-700: #027a48;
+  --color-utility-neutral-50: #f9fafb;
+  --color-utility-neutral-100: #f2f4f7;
+  --color-utility-neutral-200: #eaecf0;
+  --color-utility-neutral-300: #d0d5dd;
+  --color-utility-neutral-400: #98a2b3;
+  --color-utility-neutral-500: #667085;
+  --color-utility-neutral-600: #475467;
+  --color-utility-neutral-700: #344054;
+  --color-utility-red-50: #fef3f2;
+  --color-utility-red-100: #fee4e2;
+  --color-utility-red-200: #fecdca;
+  --color-utility-red-400: #fca5a5;
+  --color-utility-red-500: #f04438;
+  --color-utility-red-600: #d92d20;
+  --color-utility-red-700: #b42318;
+  --color-utility-yellow-50: #fffaeb;
+  --color-utility-yellow-100: #fef0c7;
+  --color-utility-yellow-200: #fedf89;
+  --color-utility-yellow-400: #fdb022;
+  --color-utility-yellow-500: #f79009;
+  --color-utility-yellow-600: #dc6803;
+  --color-utility-yellow-700: #b93815;
+  --color-utility-brand-50: #fef3f2;
+  --color-utility-brand-100: #fee4e2;
+  --color-utility-brand-200: #fecdca;
+  --color-utility-brand-600: #d92d20;
   --color-utility-indigo-50: #eef2ff;
   --color-utility-indigo-100: #e0e7ff;
   --color-utility-orange-50: #fff7ed;
@@ -137,16 +137,15 @@
   --color-utility-slate-100: #f1f5f9;
 }
 
-/* Override text colors for dark theme - Tailwind v4 maps text-* to same color-* var as bg-*
-   These overrides use separate --color-text-* variables for readability */
+/* Override text colors for light theme */
 @layer utilities {
-  .text-primary { color: var(--color-text-primary, #ffffff); }
-  .text-secondary { color: var(--color-text-secondary, #e5e5e5); }
-  .text-secondary_hover { color: var(--color-text-secondary_hover, #ffffff); }
-  .text-tertiary { color: var(--color-text-tertiary, #a3a3a3); }
-  .text-tertiary_hover { color: var(--color-text-tertiary_hover, #cccccc); }
-  .text-quaternary { color: var(--color-text-quaternary, #666666); }
-  .text-placeholder { color: var(--color-text-placeholder, #555555); }
+  .text-primary { color: var(--color-text-primary, #101828); }
+  .text-secondary { color: var(--color-text-secondary, #344054); }
+  .text-secondary_hover { color: var(--color-text-secondary_hover, #101828); }
+  .text-tertiary { color: var(--color-text-tertiary, #475467); }
+  .text-tertiary_hover { color: var(--color-text-tertiary_hover, #344054); }
+  .text-quaternary { color: var(--color-text-quaternary, #98a2b3); }
+  .text-placeholder { color: var(--color-text-placeholder, #667085); }
 }
 
 @keyframes fade-in {
@@ -191,13 +190,13 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   font-family: var(--font-sans);
   background-color: var(--color-surface-deepest);
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 ::-webkit-scrollbar {
@@ -210,10 +209,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: #d0d5dd;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #404040;
+  background: #98a2b3;
 }

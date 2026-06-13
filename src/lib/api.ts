@@ -289,3 +289,57 @@ export async function deleteLead(id: string): Promise<void> {
   const { error } = await supabase.from("leads").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+export type CampaignAnalytics = {
+  id: string;
+  name: string;
+  subject: string;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  total_recipients: number;
+  sent_count: number;
+  created_at: string;
+  actual_sends: number;
+  delivered: number;
+  total_opens: number;
+  unique_opens: number;
+  total_clicks: number;
+  unique_clicks: number;
+  total_bounces: number;
+  total_complaints: number;
+};
+
+export type CampaignEvent = {
+  id: string;
+  campaign_id: string;
+  email: string;
+  event_type: string;
+  bounce_type: string | null;
+  bounce_subtype: string | null;
+  click_url: string | null;
+  created_at: string;
+};
+
+export async function fetchCampaignAnalytics(): Promise<CampaignAnalytics[]> {
+  const { data, error } = await supabase
+    .from("campaign_analytics_view")
+    .select("*")
+    .order("started_at", { ascending: false, nullsFirst: false });
+
+  if (error) throw new Error(error.message);
+  return (data || []) as CampaignAnalytics[];
+}
+
+export async function fetchCampaignEvents(campaignId: string): Promise<CampaignEvent[]> {
+  const { data, error } = await supabase
+    .from("campaign_events")
+    .select("id, campaign_id, email, event_type, bounce_type, bounce_subtype, click_url, created_at")
+    .eq("campaign_id", campaignId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) throw new Error(error.message);
+  return (data || []) as CampaignEvent[];
+}
+

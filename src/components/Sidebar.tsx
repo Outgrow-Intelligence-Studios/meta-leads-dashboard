@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Announcement01, BarChart01, ChevronLeft, ChevronRight, LayoutGrid01, Lock01, LogOut01, Settings01, Target01, Users01 } from "@untitledui/icons";
+import { Announcement01, BarChart01, ChevronLeft, ChevronRight, LayoutGrid01, Lock01, LogOut01, Mail01, Settings01, Target01, Users01 } from "@untitledui/icons";
 
 import { cx } from "@/utils/cx";
 import columbusLogo from "@/assets/columbus-logo.png";
@@ -20,6 +20,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutGrid01, href: "#/dashboard" },
   { label: "Meta Leads", icon: Users01, href: "#/leads" },
+  { label: "Email Campaigns", icon: Mail01, href: "#/email-campaigns" },
   { label: "Campaigns", icon: Announcement01, href: "#/campaigns", locked: true },
   { label: "Audience", icon: Target01, href: "#/audience", locked: true },
   { label: "Analytics", icon: BarChart01, href: "#/analytics", locked: true },

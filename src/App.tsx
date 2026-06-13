@@ -5,6 +5,7 @@ import LeadsTable from "./components/LeadsTable";
 import LeadNotifications from "./components/LeadNotifications";
 import DashboardPage from "./pages/DashboardPage";
 import CampaignsPage from "./pages/CampaignsPage";
+import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import AudiencePage from "./pages/AudiencePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -58,6 +59,8 @@ export default function App() {
   const pageTitle =
     currentPage === "leads"
       ? "Meta Leads"
+      : currentPage === "email-campaigns"
+      ? "Email Campaigns"
       : currentPage.charAt(0).toUpperCase() + currentPage.slice(1);
 
   let pageContent: React.ReactNode;
@@ -75,6 +78,8 @@ export default function App() {
     );
   } else if (currentPage === "dashboard") {
     pageContent = <DashboardPage leads={leads} />;
+  } else if (currentPage === "email-campaigns") {
+    pageContent = <EmailCampaignsPage />;
   } else if (currentPage === "campaigns") {
     pageContent = <CampaignsPage />;
   } else if (currentPage === "audience") {
