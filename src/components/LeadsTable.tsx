@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg } from "@untitledui/icons";
+import { Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Eye, Trash01, X } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
 import { Badge } from "@/components/base/badges/badges";
@@ -231,6 +231,11 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     notes: "",
   });
   const [addingLead, setAddingLead] = useState(false);
+  const [selectedLeadForDetails, setSelectedLeadForDetails] = useState<Lead | null>(null);
+  const currentDetailsLead = useMemo(() => {
+    if (!selectedLeadForDetails) return null;
+    return leads.find((l) => l.id === selectedLeadForDetails.id) || selectedLeadForDetails;
+  }, [leads, selectedLeadForDetails]);
 
   useEffect(() => {
     if (!toast) return;
@@ -288,24 +293,19 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
   const persistCrmFields = useCallback(async (
     lead: Lead,
-    updates: Partial<Pick<Lead, "notes" | "location" | "sales_person" | "remark_1" | "remark_2">>,
-    savingKey: "notes" | "location" | "sales_person" | "remark_1" | "remark_2",
+    updates: Partial<Lead>,
+    savingKey: keyof Lead,
     successMessage: string,
   ) => {
     const nextLead = { ...lead, ...updates };
     onChange((prev) => prev.map((item) => (item.id === lead.id ? nextLead : item)));
-    setSavingLead((s) => ({ ...s, [lead.id]: savingKey }));
+    setSavingLead((s) => ({ ...s, [lead.id]: savingKey as string }));
     try {
-      await updateLead(lead.id, {
-        notes: nextLead.notes,
-        location: nextLead.location,
-        sales_person: nextLead.sales_person,
-        remark_1: nextLead.remark_1,
-        remark_2: nextLead.remark_2,
-      });
+      await updateLead(lead.id, updates);
       setToast({ msg: successMessage, tone: "ok" });
     } catch (e) {
       setToast({ msg: `Save failed: ${(e as Error).message}`, tone: "err" });
+      onChange((prev) => prev.map((item) => (item.id === lead.id ? lead : item)));
     } finally {
       setSavingLead((s) => ({ ...s, [lead.id]: null }));
     }
@@ -549,27 +549,64 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         />
 
         {selectedLeadIds.size > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary bg-secondary px-5 py-3">
-            <div className="text-sm font-medium text-primary">
-              {selectedLeadIds.size} selected
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-primary/95 backdrop-blur-md border border-secondary shadow-2xl rounded-2xl px-6 py-3.5 animate-in slide-in-from-bottom-5 duration-300 ring-1 ring-black/5">
+            <div className="flex items-center gap-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#ed1c24]/10 text-[11px] font-semibold text-[#ed1c24]">
+                {selectedLeadIds.size}
+              </span>
+              <span className="text-xs font-semibold text-primary">selected</span>
             </div>
+            
+            <div className="h-4 w-px bg-secondary" />
+
             <div className="flex items-center gap-2">
               <Button
-                size="sm"
+                size="xs"
+                color="secondary"
+                onClick={() => {
+                  const next = new Set<string>();
+                  filtered.forEach(l => next.add(l.id));
+                  setSelectedLeadIds(next);
+                }}
+              >
+                Select All ({filtered.length})
+              </Button>
+
+              <Button
+                size="xs"
+                color="secondary"
+                onClick={() => setSelectedLeadIds(new Set())}
+              >
+                Deselect All
+              </Button>
+
+              <Button
+                size="xs"
                 color="secondary"
                 onClick={() => exportCsv(selectedLeads)}
               >
-                Export selected
+                Export
               </Button>
+
               <Button
-                size="sm"
+                size="xs"
                 color="secondary-destructive"
                 isLoading={bulkDeleting}
                 onClick={bulkDeleteSelected}
               >
-                Delete selected
+                Delete
               </Button>
             </div>
+
+            <div className="h-4 w-px bg-secondary" />
+
+            <button
+              onClick={() => setSelectedLeadIds(new Set())}
+              title="Cancel selection"
+              className="p-1 rounded text-tertiary hover:text-primary hover:bg-secondary transition-all cursor-pointer"
+            >
+              <X className="size-4" />
+            </button>
           </div>
         )}
 
@@ -657,6 +694,10 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
             totalItems={totalItems}
             pageSize={pageSize}
             onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
             position="top"
           />
         )}
@@ -664,7 +705,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         {/* Table — scrollable, no row shrinking */}
         {!loading && filtered.length > 0 && (
           <div className="overflow-x-auto bg-primary">
-            <Table size="sm" aria-label="Leads table" className="min-w-[1940px] table-striped-columns">
+            <Table size="sm" aria-label="Leads table" className="w-full min-w-[800px] table-striped-columns">
               <Table.Header className="bg-primary/95 backdrop-blur-sm">
                 <Table.Head className="w-12 bg-primary/95">
                   <SelectionToggle
@@ -674,43 +715,31 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     onChange={toggleVisibleSelection}
                   />
                 </Table.Head>
-                <Table.Head className={cx("min-w-[150px] bg-primary/95", STICKY_DATE_CLASS)}>
-                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+                <Table.Head className={cx("w-[140px] bg-primary/95", STICKY_DATE_CLASS)}>
+                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary cursor-pointer">
                     Created
                   </button>
                 </Table.Head>
-                <Table.Head isRowHeader className={cx("min-w-[180px] bg-primary/95", STICKY_NAME_CLASS)}>
-                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
+                <Table.Head isRowHeader className={cx("w-[180px] bg-primary/95", STICKY_NAME_CLASS)}>
+                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary cursor-pointer">
                     Lead
                   </button>
                 </Table.Head>
-                <Table.Head className="min-w-[220px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Email</Table.Head>
-                <Table.Head className="min-w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Phone</Table.Head>
-                <Table.Head className="min-w-[150px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Source</Table.Head>
-                <Table.Head className="min-w-[160px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Lead Status</Table.Head>
-                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Region</Table.Head>
-                <Table.Head className="min-w-[240px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Notes</Table.Head>
-                <Table.Head className="min-w-[170px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Next Follow-Up</Table.Head>
-                <Table.Head className="min-w-[170px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Final Follow-Up</Table.Head>
-                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Owner</Table.Head>
-                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Note 1</Table.Head>
-                <Table.Head className="min-w-[180px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Note 2</Table.Head>
-                <Table.Head className="w-10 bg-primary/95">{""}</Table.Head>
+                <Table.Head className="w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Phone</Table.Head>
+                <Table.Head className="w-[150px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Source</Table.Head>
+                <Table.Head className="w-[160px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Lead Status</Table.Head>
+                <Table.Head className="w-[100px] bg-primary/95 text-right">{""}</Table.Head>
               </Table.Header>
               <Table.Body>
                 {paginatedLeads.map((lead) => (
                   <LeadRow
                     key={lead.id}
                     lead={lead}
-                    saving={savingLead[lead.id] || null}
                     isSelected={selectedLeadIds.has(lead.id)}
-                    onCrmFieldSave={persistCrmFields}
                     onSelectionChange={toggleLeadSelection}
                     onStatusChange={changeStatus}
-                    onFollowUpChange={changeFollowUp}
-                    onFollowUp2Change={changeFollowUp2}
-                    onDelete={removeLead}
                     onCopy={handleCopyLead}
+                    onOpenDetails={setSelectedLeadForDetails}
                   />
                 ))}
               </Table.Body>
@@ -726,10 +755,28 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
             totalItems={totalItems}
             pageSize={pageSize}
             onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
             position="bottom"
           />
         )}
       </TableCard.Root>
+
+      {currentDetailsLead && (
+        <LeadDetailsDrawer
+          lead={currentDetailsLead}
+          saving={savingLead[currentDetailsLead.id] || null}
+          onClose={() => setSelectedLeadForDetails(null)}
+          onCrmFieldSave={persistCrmFields}
+          onStatusChange={changeStatus}
+          onFollowUpChange={changeFollowUp}
+          onFollowUp2Change={changeFollowUp2}
+          onCopy={handleCopyLead}
+          onDelete={removeLead}
+        />
+      )}
 
       {/* Toast */}
       {toast && (
@@ -756,108 +803,58 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
 function LeadRow({
   lead,
-  saving,
   isSelected,
-  onCrmFieldSave,
   onSelectionChange,
   onStatusChange,
-  onFollowUpChange,
-  onFollowUp2Change,
-  onDelete,
   onCopy,
+  onOpenDetails,
 }: {
   lead: Lead;
-  saving: string | null;
   isSelected: boolean;
-  onCrmFieldSave: (
-    lead: Lead,
-    updates: Partial<Pick<Lead, "notes" | "location" | "sales_person" | "remark_1" | "remark_2">>,
-    savingKey: "notes" | "location" | "sales_person" | "remark_1" | "remark_2",
-    successMessage: string,
-  ) => void;
   onSelectionChange: (id: string, checked: boolean) => void;
   onStatusChange: (id: string, status: string) => void;
-  onFollowUpChange: (id: string, date: string) => void;
-  onFollowUp2Change: (id: string, date: string) => void;
-  onDelete: (id: string) => void;
   onCopy: (lead: Lead) => void;
+  onOpenDetails: (lead: Lead) => void;
 }) {
-  const [draft, setDraft] = useState({
-    notes: lead.notes,
-    location: lead.location,
-    sales_person: lead.sales_person,
-    remark_1: lead.remark_1,
-    remark_2: lead.remark_2,
-  });
-  const initialDraft = useRef(draft);
-
-  useEffect(() => {
-    const nextDraft = {
-      notes: lead.notes,
-      location: lead.location,
-      sales_person: lead.sales_person,
-      remark_1: lead.remark_1,
-      remark_2: lead.remark_2,
-    };
-    setDraft(nextDraft);
-    initialDraft.current = nextDraft;
-  }, [lead.location, lead.notes, lead.remark_1, lead.remark_2, lead.sales_person]);
-
-  function handleFieldBlur(
-    field: "notes" | "location" | "sales_person" | "remark_1" | "remark_2",
-    successMessage: string,
-  ) {
-    if (draft[field] === initialDraft.current[field]) return;
-    const value = draft[field];
-    initialDraft.current = { ...initialDraft.current, [field]: value };
-    onCrmFieldSave(lead, { [field]: value }, field, successMessage);
-  }
-
   return (
-    <Table.Row className="h-auto bg-primary align-top hover:bg-secondary/40">
-      <Table.Cell className="align-top">
+    <Table.Row className="h-auto bg-primary align-middle hover:bg-secondary/40">
+      <Table.Cell className="align-middle py-2">
         <SelectionToggle
           label={`Select ${lead.name || "lead"}`}
           checked={isSelected}
           onChange={(checked) => onSelectionChange(lead.id, checked)}
         />
       </Table.Cell>
-      <Table.Cell className={cx("align-top", STICKY_DATE_CLASS)}>
-        <div className="space-y-1">
+      <Table.Cell className={cx("align-middle py-2", STICKY_DATE_CLASS)}>
+        <div className="space-y-0.5">
           <div className="text-sm font-medium text-primary">{formatShortDate(lead.created_at)}</div>
-          <div className="text-xs text-tertiary">{formatDate(lead.created_at)}</div>
+          <div className="text-[11px] text-tertiary">{formatDate(lead.created_at)}</div>
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-top", STICKY_NAME_CLASS)}>
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1 min-w-0">
-            <div className="text-sm font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
-            <div className="text-xs text-tertiary">Contact record</div>
-          </div>
+      <Table.Cell className={cx("align-middle py-2", STICKY_NAME_CLASS)}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
           <button
             onClick={() => onCopy(lead)}
             title="Copy lead details to clipboard"
-            className="p-1 rounded text-tertiary hover:text-[#ed1c24] hover:bg-[#ed1c24]/5 transition-all cursor-pointer shrink-0 mt-0.5"
+            className="p-1 rounded text-tertiary hover:text-[#ed1c24] hover:bg-[#ed1c24]/5 transition-all cursor-pointer shrink-0"
           >
             <Copy01 className="size-3.5" />
           </button>
         </div>
       </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="max-w-[220px] truncate text-sm text-secondary">{lead.email || "\u2014"}</div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
+      <Table.Cell className="align-middle py-2">
         <div className="text-sm text-secondary">{lead.phone || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className="align-top">
+      <Table.Cell className="align-middle py-2">
         <span className={SOURCE_PILL_CLASS}>{lead.source || "\u2014"}</span>
       </Table.Cell>
-      <Table.Cell className="align-top">
+      <Table.Cell className="align-middle py-2">
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
           className={cx(
-            "w-full cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium shadow-xs outline-none transition-all focus:ring-4 focus:ring-brand/12",
+            "cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-xs outline-none transition-all focus:ring-4 focus:ring-brand/12",
             getStatusClass(lead.status),
           )}
         >
@@ -866,121 +863,309 @@ function LeadRow({
           ))}
         </select>
       </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="relative">
-          <input
-            type="text"
-            value={draft.location}
-            onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
-            onBlur={() => handleFieldBlur("location", "Region saved.")}
-            placeholder="Add region"
-            className={CELL_INPUT_CLASS}
-          />
-          {saving === "location" && (
-            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
-          )}
-        </div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="relative">
-          <textarea
-            value={draft.notes}
-            onChange={(e) => setDraft((current) => ({ ...current, notes: e.target.value }))}
-            onBlur={() => handleFieldBlur("notes", "Notes saved.")}
-            rows={2}
-            placeholder="Add notes..."
-            className={CELL_TEXTAREA_CLASS}
-          />
-          {saving === "notes" && (
-            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
-          )}
-        </div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="relative">
-          <input
-            type="date"
-            value={lead.follow_up || ""}
-            onChange={(e) => onFollowUpChange(lead.id, e.target.value)}
-            className={CELL_INPUT_CLASS}
-          />
-          <div className="mt-1 text-xs text-tertiary">{formatShortDate(lead.follow_up)}</div>
-          {saving === "follow_up" && (
-            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
-          )}
-        </div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="relative">
-          <input
-            type="date"
-            value={lead.follow_up_2 || ""}
-            onChange={(e) => onFollowUp2Change(lead.id, e.target.value)}
-            className={CELL_INPUT_CLASS}
-          />
-          <div className="mt-1 text-xs text-tertiary">{formatShortDate(lead.follow_up_2)}</div>
-          {saving === "follow_up_2" && (
-            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
-          )}
-        </div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="relative">
-          <input
-            type="text"
-            value={draft.sales_person}
-            onChange={(e) => setDraft((current) => ({ ...current, sales_person: e.target.value }))}
-            onBlur={() => handleFieldBlur("sales_person", "Owner saved.")}
-            placeholder="Assign owner"
-            className={CELL_INPUT_CLASS}
-          />
-          {saving === "sales_person" && (
-            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
-          )}
-        </div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="relative">
-          <input
-            type="text"
-            value={draft.remark_1}
-            onChange={(e) => setDraft((current) => ({ ...current, remark_1: e.target.value }))}
-            onBlur={() => handleFieldBlur("remark_1", "Note 1 saved.")}
-            placeholder="Add note"
-            className={CELL_INPUT_CLASS}
-          />
-          {saving === "remark_1" && (
-            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
-          )}
-        </div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
-        <div className="relative">
-          <input
-            type="text"
-            value={draft.remark_2}
-            onChange={(e) => setDraft((current) => ({ ...current, remark_2: e.target.value }))}
-            onBlur={() => handleFieldBlur("remark_2", "Note 2 saved.")}
-            placeholder="Add note"
-            className={CELL_INPUT_CLASS}
-          />
-          {saving === "remark_2" && (
-            <span className="absolute -top-1 right-1 text-[10px] text-brand">saving...</span>
-          )}
-        </div>
-      </Table.Cell>
-      <Table.Cell className="align-top">
-        <button
-          onClick={() => onDelete(lead.id)}
-          className="rounded-lg p-2 text-fg-quaternary transition-colors hover:bg-utility-red-50 hover:text-utility-red-600"
-          title="Delete lead"
-          disabled={saving === "delete"}
+      <Table.Cell className="align-middle py-2 text-right">
+        <Button
+          size="xs"
+          color="secondary"
+          iconLeading={Eye}
+          onClick={() => onOpenDetails(lead)}
         >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3" />
-          </svg>
-        </button>
+          Open
+        </Button>
       </Table.Cell>
     </Table.Row>
   );
 }
+
+function LeadDetailsDrawer({
+  lead,
+  saving,
+  onClose,
+  onCrmFieldSave,
+  onStatusChange,
+  onFollowUpChange,
+  onFollowUp2Change,
+  onCopy,
+  onDelete,
+}: {
+  lead: Lead;
+  saving: string | null;
+  onClose: () => void;
+  onCrmFieldSave: (
+    lead: Lead,
+    updates: Partial<Lead>,
+    savingKey: keyof Lead,
+    successMessage: string,
+  ) => void;
+  onStatusChange: (id: string, status: string) => void;
+  onFollowUpChange: (id: string, date: string) => void;
+  onFollowUp2Change: (id: string, date: string) => void;
+  onCopy: (lead: Lead) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [draft, setDraft] = useState({
+    notes: lead.notes || "",
+    location: lead.location || "",
+    sales_person: lead.sales_person || "",
+    remark_1: lead.remark_1 || "",
+    remark_2: lead.remark_2 || "",
+    name: lead.name || "",
+    email: lead.email || "",
+    phone: lead.phone || "",
+    source: lead.source || "",
+  });
+  const initialDraft = useRef(draft);
+
+  useEffect(() => {
+    const nextDraft = {
+      notes: lead.notes || "",
+      location: lead.location || "",
+      sales_person: lead.sales_person || "",
+      remark_1: lead.remark_1 || "",
+      remark_2: lead.remark_2 || "",
+      name: lead.name || "",
+      email: lead.email || "",
+      phone: lead.phone || "",
+      source: lead.source || "",
+    };
+    setDraft(nextDraft);
+    initialDraft.current = nextDraft;
+  }, [lead]);
+
+  function handleFieldBlur(field: keyof typeof draft, successMessage: string) {
+    if (draft[field] === (lead[field] || "")) return;
+    onCrmFieldSave(lead, { [field]: draft[field] }, field as keyof Lead, successMessage);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end animate-fade-in bg-overlay backdrop-blur-xs">
+      {/* Dismiss area */}
+      <div className="flex-1" onClick={onClose} />
+      
+      {/* Drawer content */}
+      <div className="w-full max-w-lg bg-primary h-full shadow-2xl flex flex-col border-l border-secondary animate-in slide-in-from-right duration-300">
+        {/* Header */}
+        <div className="p-5 border-b border-secondary flex items-center justify-between bg-secondary/35">
+          <div>
+            <span className="text-xs text-tertiary uppercase font-bold tracking-wider">Lead Record</span>
+            <h3 className="text-lg font-bold text-primary mt-1">{lead.name || "Unnamed Lead"}</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onCopy(lead)}
+              title="Copy lead details"
+              className="p-2 rounded-lg hover:bg-secondary text-tertiary hover:text-primary transition-colors cursor-pointer"
+            >
+              <Copy01 className="size-4" />
+            </button>
+            <button
+              onClick={() => {
+                if (confirm("Are you sure you want to delete this lead?")) {
+                  onDelete(lead.id);
+                  onClose();
+                }
+              }}
+              title="Delete lead"
+              className="p-2 rounded-lg hover:bg-utility-red-50 text-tertiary hover:text-utility-red-600 transition-colors cursor-pointer"
+            >
+              <Trash01 className="size-4" />
+            </button>
+            <button 
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-secondary text-tertiary hover:text-primary transition-colors cursor-pointer"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable details */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Main Info */}
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Created Date</label>
+              <div className="text-sm text-tertiary bg-secondary/30 rounded-lg px-3 py-2 border border-secondary">
+                {new Date(lead.created_at).toLocaleString()}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Lead Name</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.name}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+                  onBlur={() => handleFieldBlur("name", "Name updated.")}
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "name" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Email</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={draft.email}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, email: e.target.value }))}
+                  onBlur={() => handleFieldBlur("email", "Email updated.")}
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "email" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Phone</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.phone}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, phone: e.target.value }))}
+                  onBlur={() => handleFieldBlur("phone", "Phone updated.")}
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "phone" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Source</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.source}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, source: e.target.value }))}
+                  onBlur={() => handleFieldBlur("source", "Source updated.")}
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "source" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Lead Status</label>
+              <select
+                value={lead.status || "New"}
+                onChange={(e) => onStatusChange(lead.id, e.target.value)}
+                className={cx(
+                  "w-full cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium shadow-xs outline-none transition-all focus:ring-4 focus:ring-brand/12",
+                  getStatusClass(lead.status),
+                )}
+              >
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Region</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.location}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, location: e.target.value }))}
+                  onBlur={() => handleFieldBlur("location", "Region updated.")}
+                  placeholder="Add region"
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "location" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Owner</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.sales_person}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, sales_person: e.target.value }))}
+                  onBlur={() => handleFieldBlur("sales_person", "Owner updated.")}
+                  placeholder="Assign owner"
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "sales_person" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Next Follow-Up</label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={lead.follow_up || ""}
+                  onChange={(e) => onFollowUpChange(lead.id, e.target.value)}
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "follow_up" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Final Follow-Up</label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={lead.follow_up_2 || ""}
+                  onChange={(e) => onFollowUp2Change(lead.id, e.target.value)}
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "follow_up_2" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Notes</label>
+              <div className="relative">
+                <textarea
+                  value={draft.notes}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, notes: e.target.value }))}
+                  onBlur={() => handleFieldBlur("notes", "Notes updated.")}
+                  rows={4}
+                  placeholder="Add notes..."
+                  className={CELL_TEXTAREA_CLASS}
+                />
+                {saving === "notes" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Note 1</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.remark_1}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, remark_1: e.target.value }))}
+                  onBlur={() => handleFieldBlur("remark_1", "Note 1 updated.")}
+                  placeholder="Add note"
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "remark_1" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Note 2</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.remark_2}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, remark_2: e.target.value }))}
+                  onBlur={() => handleFieldBlur("remark_2", "Note 2 updated.")}
+                  placeholder="Add note"
+                  className={CELL_INPUT_CLASS}
+                />
+                {saving === "remark_2" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

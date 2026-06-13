@@ -141,16 +141,16 @@ export default function EmailCampaignsPage() {
       dailyData[dateStr].opens += c.unique_opens || 0;
     });
 
-    // Take the last 10 unique active campaign dates
-    return Object.entries(dailyData).slice(-10);
+    // Take the last 15 unique active campaign dates
+    return Object.entries(dailyData).slice(-15);
   }, [campaigns]);
 
   // SVG Chart rendering helper
   const svgChart = useMemo(() => {
     if (chartPoints.length < 2) return null;
 
-    const width = 600;
-    const height = 180;
+    const width = 1200;
+    const height = 200;
     const paddingLeft = 40;
     const paddingRight = 20;
     const paddingTop = 20;
@@ -256,7 +256,7 @@ export default function EmailCampaignsPage() {
           <div className="mt-4 overflow-x-auto">
             <svg 
               viewBox={`0 0 ${svgChart.width} ${svgChart.height}`} 
-              className="w-full min-w-[600px] h-[180px] overflow-visible"
+              className="w-full h-[200px] overflow-visible"
             >
               {/* Grid Lines */}
               <line x1={svgChart.paddingLeft} y1={svgChart.paddingTop} x2={svgChart.width - 20} y2={svgChart.paddingTop} stroke="var(--color-border-secondary)" strokeDasharray="3 3" />
