@@ -11,7 +11,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { fetchLeads, getScriptUrl, type Lead } from "./lib/api";
 import { Button } from "@/components/base/buttons/button";
-import { ChevronRight, RefreshCw01, Settings01 } from "@untitledui/icons";
+import { ChevronRight, RefreshCw01, Settings01, X } from "@untitledui/icons";
 import oiLogo from "./assets/oi-logo.svg";
 
 function getPageFromHash(): string {
@@ -27,6 +27,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [currentPage, setCurrentPage] = useState(getPageFromHash);
+  const [connectionToast, setConnectionToast] = useState<{ visible: boolean; count: number } | null>(null);
 
   useEffect(() => {
     const onHashChange = () => {
@@ -43,12 +44,22 @@ export default function App() {
       const data = await fetchLeads();
       setLeads(data);
       setLastSync(new Date());
+      setConnectionToast({ visible: true, count: data.length });
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (connectionToast?.visible) {
+      const timer = setTimeout(() => {
+        setConnectionToast(prev => prev ? { ...prev, visible: false } : null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [connectionToast?.visible]);
 
   useEffect(() => {
     loadData();
@@ -186,33 +197,42 @@ export default function App() {
             </div>
           )}
 
-          {!error && leads.length > 0 && (
-            <div className="flex items-start gap-3 rounded-xl bg-utility-green-50 p-4 ring-1 ring-utility-green-200">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-utility-green-100 text-utility-green-700">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-utility-green-700">
-                  Connected to Supabase
-                </div>
-                <div className="text-sm text-utility-green-600 mt-0.5">
-                  {leads.length} lead{leads.length !== 1 ? "s" : ""} stored in database.
-                </div>
-              </div>
-            </div>
-          )}
-
           {!error && pageContent}
 
           <footer className="flex items-center justify-center gap-2 pt-2 pb-4 text-xs text-tertiary">
             <span>Powered by</span>
-            <img src={oiLogo} alt="Outgrow Intelligence" className="h-4 w-auto brightness-0 invert opacity-60" />
+            <img src={oiLogo} alt="Outgrow Intelligence" className="h-4 w-auto opacity-70" />
           </footer>
 
         </div>
       </main>
+
+      {/* Supabase Connection Toast */}
+      {connectionToast?.visible && (
+        <div
+          role="alert"
+          className="fixed bottom-4 right-4 z-50 flex w-[360px] items-start gap-3 rounded-2xl bg-primary p-4 shadow-2xl ring-1 ring-secondary animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-utility-green-50 text-utility-green-600 ring-1 ring-inset ring-utility-green-100">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-primary">Connected to Supabase</div>
+            <div className="mt-0.5 text-xs text-tertiary">
+              {connectionToast.count} lead{connectionToast.count !== 1 ? "s" : ""} stored in database.
+            </div>
+          </div>
+          <button
+            onClick={() => setConnectionToast(prev => prev ? { ...prev, visible: false } : null)}
+            className="shrink-0 rounded-md p-1 text-tertiary transition hover:bg-primary_hover hover:text-primary"
+            aria-label="Dismiss"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
