@@ -227,8 +227,7 @@ body {
 }
 
 /* Striped columns in tables */
-.table-striped-columns td:nth-child(even),
-.table-striped-columns th:nth-child(even) {
+.table-striped-columns tbody td:nth-child(even) {
   background-color: var(--color-surface-deep);
 }
 

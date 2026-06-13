@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Eye, Trash01, X } from "@untitledui/icons";
+import { CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Eye, Trash01, X } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
 import { Badge } from "@/components/base/badges/badges";
@@ -60,6 +60,19 @@ function formatShortDate(iso: string | null) {
   });
 }
 
+const getRowBgClass = (selected: boolean) =>
+  selected ? "bg-[#fef3f2] hover:bg-[#fee4e2]" : "bg-primary hover:bg-secondary/40";
+
+const getCellBgClass = (selected: boolean, isSticky: boolean) => {
+  if (selected) {
+    return "!bg-[#fef3f2] group-hover:!bg-[#fee4e2]";
+  }
+  if (isSticky) {
+    return "bg-primary group-hover:!bg-secondary/40";
+  }
+  return "group-hover:!bg-secondary/40";
+};
+
 function SkeletonBar({ className }: { className?: string }) {
   return <div className={cx("h-3.5 rounded bg-secondary/80 animate-pulse", className)} />;
 }
@@ -67,9 +80,9 @@ function SkeletonBar({ className }: { className?: string }) {
 function LeadsTableSkeleton() {
   return (
     <div className="overflow-x-auto bg-primary">
-      <div className="min-w-[1940px]">
-        <div className="grid grid-cols-[48px_150px_180px_220px_140px_150px_160px_180px_240px_170px_170px_180px_180px_180px_40px] border-b border-secondary bg-primary/95 px-5 py-3">
-          {["", "Created", "Lead", "Email", "Phone", "Source", "Lead Status", "Region", "Notes", "Next Follow-Up", "Final Follow-Up", "Owner", "Note 1", "Note 2", ""].map((label, index) => (
+      <div className="min-w-[1100px]">
+        <div className="grid grid-cols-[48px_102px_180px_140px_150px_160px_140px_140px_160px_120px] border-b border-secondary bg-primary/95 px-5 py-3">
+          {["", "Created", "Lead", "Phone", "Source", "Lead Status", "Region", "Owner", "Next Follow-Up", ""].map((label, index) => (
             <div key={`${label}-${index}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
               {label}
             </div>
@@ -78,29 +91,23 @@ function LeadsTableSkeleton() {
         {Array.from({ length: 6 }).map((_, rowIndex) => (
           <div
             key={rowIndex}
-            className="grid grid-cols-[48px_150px_180px_220px_140px_150px_160px_180px_240px_170px_170px_180px_180px_180px_40px] items-start border-b border-secondary px-5 py-4"
+            className="grid grid-cols-[48px_102px_180px_140px_150px_160px_140px_140px_160px_120px] items-center border-b border-secondary px-5 py-4"
           >
             <SkeletonBar className="mt-1 h-5 w-5 rounded-md" />
-            <div className="space-y-2">
-              <SkeletonBar className="w-20" />
-              <SkeletonBar className="w-28" />
-            </div>
-            <div className="space-y-2">
-              <SkeletonBar className="w-24" />
+            <div className="space-y-1.5">
               <SkeletonBar className="w-16" />
+              <SkeletonBar className="w-20" />
             </div>
-            <SkeletonBar className="w-40" />
+            <SkeletonBar className="w-28" />
             <SkeletonBar className="w-24" />
-            <SkeletonBar className="h-7 w-24 rounded-md" />
-            <SkeletonBar className="h-9 w-full rounded-lg" />
-            <SkeletonBar className="h-9 w-full rounded-lg" />
-            <SkeletonBar className="h-14 w-full rounded-lg" />
-            <SkeletonBar className="h-9 w-full rounded-lg" />
-            <SkeletonBar className="h-9 w-full rounded-lg" />
-            <SkeletonBar className="h-9 w-full rounded-lg" />
-            <SkeletonBar className="h-9 w-full rounded-lg" />
-            <SkeletonBar className="h-9 w-full rounded-lg" />
-            <SkeletonBar className="mt-1 h-5 w-5 rounded-md" />
+            <SkeletonBar className="h-6 w-20 rounded-md" />
+            <SkeletonBar className="h-8 w-28 rounded-lg" />
+            <SkeletonBar className="w-24" />
+            <SkeletonBar className="w-24" />
+            <SkeletonBar className="w-20" />
+            <div className="flex justify-end">
+              <SkeletonBar className="h-7 w-20 rounded-lg" />
+            </div>
           </div>
         ))}
       </div>
@@ -138,6 +145,7 @@ function PaginationControls({
   totalItems,
   pageSize,
   onPageChange,
+  onPageSizeChange,
   position = "bottom",
 }: {
   page: number;
@@ -145,6 +153,7 @@ function PaginationControls({
   totalItems: number;
   pageSize: number;
   onPageChange: (p: number) => void;
+  onPageSizeChange?: (size: number) => void;
   position?: "top" | "bottom";
 }) {
   const startItem = (page - 1) * pageSize + 1;
@@ -153,10 +162,28 @@ function PaginationControls({
 
   return (
     <div className={cx("flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-3 bg-primary", borderClass)}>
-      <div className="text-xs text-tertiary">
-        Showing <span className="font-semibold text-primary">{totalItems === 0 ? 0 : startItem}</span> to{" "}
-        <span className="font-semibold text-primary">{endItem}</span> of{" "}
-        <span className="font-semibold text-primary">{totalItems}</span> leads
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="text-xs text-tertiary">
+          Showing <span className="font-semibold text-primary">{totalItems === 0 ? 0 : startItem}</span> to{" "}
+          <span className="font-semibold text-primary">{endItem}</span> of{" "}
+          <span className="font-semibold text-primary">{totalItems}</span> leads
+        </div>
+        {onPageSizeChange && (
+          <div className="flex items-center gap-2 sm:border-l sm:border-secondary sm:pl-4">
+            <span className="text-xs text-tertiary">Show</span>
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="rounded-md border border-secondary bg-primary px-2 py-1 text-xs font-semibold text-primary shadow-xs outline-none transition-all hover:border-primary focus:border-brand cursor-pointer"
+            >
+              {[10, 25, 50, 100].map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <Button
@@ -563,6 +590,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
               <Button
                 size="xs"
                 color="secondary"
+                iconLeading={CheckCircle}
                 onClick={() => {
                   const next = new Set<string>();
                   filtered.forEach(l => next.add(l.id));
@@ -575,6 +603,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
               <Button
                 size="xs"
                 color="secondary"
+                iconLeading={X}
                 onClick={() => setSelectedLeadIds(new Set())}
               >
                 Deselect All
@@ -583,6 +612,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
               <Button
                 size="xs"
                 color="secondary"
+                iconLeading={Download01}
                 onClick={() => exportCsv(selectedLeads)}
               >
                 Export
@@ -590,7 +620,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
               <Button
                 size="xs"
-                color="secondary-destructive"
+                color="primary-destructive"
+                iconLeading={Trash01}
                 isLoading={bulkDeleting}
                 onClick={bulkDeleteSelected}
               >
@@ -705,7 +736,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         {/* Table — scrollable, no row shrinking */}
         {!loading && filtered.length > 0 && (
           <div className="overflow-x-auto bg-primary">
-            <Table size="sm" aria-label="Leads table" className="w-full min-w-[800px] table-striped-columns">
+            <Table size="sm" aria-label="Leads table" className="w-full min-w-[1100px] table-striped-columns">
               <Table.Header className="bg-primary/95 backdrop-blur-sm">
                 <Table.Head className="w-12 bg-primary/95">
                   <SelectionToggle
@@ -715,20 +746,23 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     onChange={toggleVisibleSelection}
                   />
                 </Table.Head>
-                <Table.Head className={cx("w-[140px] bg-primary/95", STICKY_DATE_CLASS)}>
-                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary cursor-pointer">
+                <Table.Head className={cx("w-[102px] bg-primary/95", STICKY_DATE_CLASS)}>
+                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary cursor-pointer">
                     Created
                   </button>
                 </Table.Head>
                 <Table.Head isRowHeader className={cx("w-[180px] bg-primary/95", STICKY_NAME_CLASS)}>
-                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary cursor-pointer">
+                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary cursor-pointer">
                     Lead
                   </button>
                 </Table.Head>
-                <Table.Head className="w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Phone</Table.Head>
-                <Table.Head className="w-[150px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Source</Table.Head>
-                <Table.Head className="w-[160px] text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Lead Status</Table.Head>
-                <Table.Head className="w-[100px] bg-primary/95 text-right">{""}</Table.Head>
+                <Table.Head className="min-w-[120px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Phone</Table.Head>
+                <Table.Head className="min-w-[130px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Source</Table.Head>
+                <Table.Head className="min-w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Lead Status</Table.Head>
+                <Table.Head className="min-w-[120px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Region</Table.Head>
+                <Table.Head className="min-w-[120px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Owner</Table.Head>
+                <Table.Head className="min-w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Next Follow-Up</Table.Head>
+                <Table.Head className="min-w-[120px] bg-primary/95 text-right">{""}</Table.Head>
               </Table.Header>
               <Table.Body>
                 {paginatedLeads.map((lead) => (
@@ -817,21 +851,21 @@ function LeadRow({
   onOpenDetails: (lead: Lead) => void;
 }) {
   return (
-    <Table.Row className="h-auto bg-primary align-middle hover:bg-secondary/40">
-      <Table.Cell className="align-middle py-2">
+    <Table.Row className={cx("group h-auto align-middle", getRowBgClass(isSelected))}>
+      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
         <SelectionToggle
           label={`Select ${lead.name || "lead"}`}
           checked={isSelected}
           onChange={(checked) => onSelectionChange(lead.id, checked)}
         />
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", STICKY_DATE_CLASS)}>
+      <Table.Cell className={cx("align-middle py-2 sticky left-0 z-10 shadow-[1px_0_0_0_rgba(16,24,40,0.06)]", getCellBgClass(isSelected, true))}>
         <div className="space-y-0.5">
           <div className="text-sm font-medium text-primary">{formatShortDate(lead.created_at)}</div>
           <div className="text-[11px] text-tertiary">{formatDate(lead.created_at)}</div>
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", STICKY_NAME_CLASS)}>
+      <Table.Cell className={cx("align-middle py-2 sticky left-[150px] z-10 shadow-[1px_0_0_0_rgba(16,24,40,0.06)]", getCellBgClass(isSelected, true))}>
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
           <button
@@ -843,13 +877,13 @@ function LeadRow({
           </button>
         </div>
       </Table.Cell>
-      <Table.Cell className="align-middle py-2">
+      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
         <div className="text-sm text-secondary">{lead.phone || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className="align-middle py-2">
+      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
         <span className={SOURCE_PILL_CLASS}>{lead.source || "\u2014"}</span>
       </Table.Cell>
-      <Table.Cell className="align-middle py-2">
+      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
@@ -863,14 +897,25 @@ function LeadRow({
           ))}
         </select>
       </Table.Cell>
-      <Table.Cell className="align-middle py-2 text-right">
+      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
+        <div className="text-sm text-secondary truncate">{lead.location || "\u2014"}</div>
+      </Table.Cell>
+      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
+        <div className="text-sm text-secondary truncate">{lead.sales_person || "\u2014"}</div>
+      </Table.Cell>
+      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
+        <div className="text-sm text-secondary">
+          {lead.follow_up ? formatShortDate(lead.follow_up) : "\u2014"}
+        </div>
+      </Table.Cell>
+      <Table.Cell className={cx("align-middle py-2 text-right", getCellBgClass(isSelected, false))}>
         <Button
           size="xs"
           color="secondary"
           iconLeading={Eye}
           onClick={() => onOpenDetails(lead)}
         >
-          Open
+          View Details
         </Button>
       </Table.Cell>
     </Table.Row>
