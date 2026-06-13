@@ -88,7 +88,7 @@ function serializeLeadNotes(meta: Partial<LeadNotesMeta>): string {
   return `${CRM_META_PREFIX}${JSON.stringify(normalized)}`;
 }
 
-function toDatabaseLeadUpdate(updates: Partial<Lead>) {
+function toDatabaseLeadUpdate(updates: Partial<Lead>, currentLead?: Lead) {
   const {
     id: _id,
     created_at: _createdAt,
@@ -111,11 +111,11 @@ function toDatabaseLeadUpdate(updates: Partial<Lead>) {
 
   if (hasNotesPayload) {
     payload.notes = serializeLeadNotes({
-      feedback: notes,
-      location,
-      sales_person,
-      remark_1,
-      remark_2,
+      feedback: notes !== undefined ? notes : (currentLead?.notes ?? ""),
+      location: location !== undefined ? location : (currentLead?.location ?? ""),
+      sales_person: sales_person !== undefined ? sales_person : (currentLead?.sales_person ?? ""),
+      remark_1: remark_1 !== undefined ? remark_1 : (currentLead?.remark_1 ?? ""),
+      remark_2: remark_2 !== undefined ? remark_2 : (currentLead?.remark_2 ?? ""),
     });
   }
 
@@ -200,13 +200,75 @@ export async function fetchLeads(): Promise<Lead[]> {
   }
 
   const merged = new Map<string, Lead>();
-  for (const l of supabaseLeads) merged.set(l.id, l);
-  for (const l of sheetLeads) {
+  const sheetEmailMap = new Map<string, Lead>();
+  for (const s of sheetLeads) {
+    if (s.email) {
+      sheetEmailMap.set(s.email.toLowerCase(), s);
+    }
+  }
+
+  for (const l of supabaseLeads) {
     const emailKey = l.email.toLowerCase();
-    const existing = Array.from(merged.values()).find(
-      (m) => m.email.toLowerCase() === emailKey
-    );
-    if (!existing) merged.set(l.id, l);
+    const sheetLead = emailKey ? sheetEmailMap.get(emailKey) : null;
+
+    if (sheetLead) {
+      const mergedLead: Lead = {
+        id: l.id,
+        name: sheetLead.name || l.name,
+        email: sheetLead.email || l.email,
+        phone: sheetLead.phone || l.phone,
+        source: sheetLead.source || l.source,
+        notes: sheetLead.notes || l.notes,
+        location: sheetLead.location || l.location,
+        sales_person: sheetLead.sales_person || l.sales_person,
+        remark_1: sheetLead.remark_1 || l.remark_1,
+        remark_2: sheetLead.remark_2 || l.remark_2,
+        status: l.status || sheetLead.status || "New",
+        follow_up: l.follow_up,
+        follow_up_2: l.follow_up_2,
+        created_at: sheetLead.created_at || l.created_at,
+        updated_at: new Date().toISOString(),
+      };
+
+      merged.set(l.id, mergedLead);
+
+      // Background sync: update Supabase if the merged record is different
+      const hasUpdates =
+        mergedLead.name !== l.name ||
+        mergedLead.email !== l.email ||
+        mergedLead.phone !== l.phone ||
+        mergedLead.source !== l.source ||
+        mergedLead.location !== l.location ||
+        mergedLead.sales_person !== l.sales_person ||
+        mergedLead.notes !== l.notes ||
+        mergedLead.remark_1 !== l.remark_1 ||
+        mergedLead.remark_2 !== l.remark_2;
+
+      if (hasUpdates) {
+        updateLead(l.id, {
+          name: mergedLead.name,
+          email: mergedLead.email,
+          phone: mergedLead.phone,
+          source: mergedLead.source,
+          location: mergedLead.location,
+          sales_person: mergedLead.sales_person,
+          notes: mergedLead.notes,
+          remark_1: mergedLead.remark_1,
+          remark_2: mergedLead.remark_2,
+        }, l).catch(() => {});
+      }
+
+      sheetEmailMap.delete(emailKey);
+    } else {
+      // Avoid showing legacy corrupt empty rows (no name and no email)
+      if (l.name || l.email) {
+        merged.set(l.id, l);
+      }
+    }
+  }
+
+  for (const s of sheetEmailMap.values()) {
+    merged.set(s.id, s);
   }
 
   return Array.from(merged.values()).sort(
@@ -241,22 +303,29 @@ export async function addLead(lead: {
 
 export async function updateLead(
   id: string,
-  updates: Partial<Lead>
+  updates: Partial<Lead>,
+  currentLead?: Lead
 ): Promise<Lead> {
-  const payload = toDatabaseLeadUpdate(updates);
+  const payload = toDatabaseLeadUpdate(updates, currentLead);
 
   if (id.startsWith("sheet-")) {
-    const rest = payload as Record<string, unknown>;
     const insertPayload = {
-      name: rest.name ?? "",
-      email: rest.email ?? "",
-      phone: rest.phone ?? "N/A",
-      source: rest.source ?? "Landing Page",
-      notes: rest.notes ?? "",
-      status: rest.status ?? "New",
-      follow_up: rest.follow_up ?? null,
-      follow_up_2: rest.follow_up_2 ?? null,
-      created_at: rest.created_at ?? new Date().toISOString(),
+      name: currentLead?.name ?? updates.name ?? "",
+      email: currentLead?.email ?? updates.email ?? "",
+      phone: currentLead?.phone ?? updates.phone ?? "N/A",
+      source: currentLead?.source ?? updates.source ?? "Landing Page",
+      notes: payload.notes ?? serializeLeadNotes({
+        feedback: currentLead?.notes ?? "",
+        location: currentLead?.location ?? "",
+        sales_person: currentLead?.sales_person ?? "",
+        remark_1: currentLead?.remark_1 ?? "",
+        remark_2: currentLead?.remark_2 ?? "",
+        ...updates
+      }),
+      status: updates.status ?? currentLead?.status ?? "New",
+      follow_up: updates.follow_up ?? currentLead?.follow_up ?? null,
+      follow_up_2: updates.follow_up_2 ?? currentLead?.follow_up_2 ?? null,
+      created_at: currentLead?.created_at ?? updates.created_at ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
     const { data, error } = await supabase

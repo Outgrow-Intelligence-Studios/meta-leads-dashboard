@@ -326,7 +326,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     onChange((prev) => prev.map((item) => (item.id === lead.id ? nextLead : item)));
     setSavingLead((s) => ({ ...s, [lead.id]: savingKey as string }));
     try {
-      await updateLead(lead.id, updates);
+      await updateLead(lead.id, updates, lead);
       setToast({ msg: successMessage, tone: "ok" });
     } catch (e) {
       setToast({ msg: `Save failed: ${(e as Error).message}`, tone: "err" });
@@ -338,42 +338,45 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
   const changeStatus = useCallback(async (id: string, status: string) => {
     const typedStatus = status as Lead["status"];
+    const lead = leads.find((l) => l.id === id);
     onChange((prev) => prev.map((l) => (l.id === id ? { ...l, status: typedStatus } : l)));
     setSavingLead((s) => ({ ...s, [id]: "status" }));
     try {
-      await updateLead(id, { status: typedStatus });
+      await updateLead(id, { status: typedStatus }, lead);
     } catch (e) {
       setToast({ msg: `Status update failed: ${(e as Error).message}`, tone: "err" });
     } finally {
       setSavingLead((s) => ({ ...s, [id]: null }));
     }
-  }, [onChange]);
+  }, [onChange, leads]);
 
   const changeFollowUp = useCallback(async (id: string, date: string) => {
+    const lead = leads.find((l) => l.id === id);
     onChange((prev) => prev.map((l) => (l.id === id ? { ...l, follow_up: date || null } : l)));
     setSavingLead((s) => ({ ...s, [id]: "follow_up" }));
     try {
-      await updateLead(id, { follow_up: date || null });
+      await updateLead(id, { follow_up: date || null }, lead);
       setToast({ msg: "Follow up 1 saved.", tone: "ok" });
     } catch (e) {
       setToast({ msg: `Follow up 1 failed: ${(e as Error).message}`, tone: "err" });
     } finally {
       setSavingLead((s) => ({ ...s, [id]: null }));
     }
-  }, [onChange]);
+  }, [onChange, leads]);
 
   const changeFollowUp2 = useCallback(async (id: string, date: string) => {
+    const lead = leads.find((l) => l.id === id);
     onChange((prev) => prev.map((l) => (l.id === id ? { ...l, follow_up_2: date || null } : l)));
     setSavingLead((s) => ({ ...s, [id]: "follow_up_2" }));
     try {
-      await updateLead(id, { follow_up_2: date || null });
+      await updateLead(id, { follow_up_2: date || null }, lead);
       setToast({ msg: "Follow up 2 saved.", tone: "ok" });
     } catch (e) {
       setToast({ msg: `Follow up 2 failed: ${(e as Error).message}`, tone: "err" });
     } finally {
       setSavingLead((s) => ({ ...s, [id]: null }));
     }
-  }, [onChange]);
+  }, [onChange, leads]);
 
   const removeLead = useCallback(async (id: string) => {
     if (!confirm("Delete this lead? This cannot be undone.")) return;
