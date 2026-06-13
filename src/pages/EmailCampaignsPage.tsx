@@ -264,9 +264,9 @@ export default function EmailCampaignsPage() {
               <line x1={svgChart.paddingLeft} y1={svgChart.paddingTop + svgChart.chartHeight} x2={svgChart.width - 20} y2={svgChart.paddingTop + svgChart.chartHeight} stroke="var(--color-border-secondary)" />
 
               {/* Y Axis Labels */}
-              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + 4} textAnchor="end" className="text-[10px] fill-tertiary font-mono">{svgChart.maxSent}</text>
-              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + svgChart.chartHeight / 2 + 4} textAnchor="end" className="text-[10px] fill-tertiary font-mono">{Math.round(svgChart.maxSent / 2)}</text>
-              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + svgChart.chartHeight + 4} textAnchor="end" className="text-[10px] fill-tertiary font-mono">0</text>
+              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + 4} textAnchor="end" className="text-[10px] fill-neutral-500 font-mono">{svgChart.maxSent}</text>
+              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + svgChart.chartHeight / 2 + 4} textAnchor="end" className="text-[10px] fill-neutral-500 font-mono">{Math.round(svgChart.maxSent / 2)}</text>
+              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + svgChart.chartHeight + 4} textAnchor="end" className="text-[10px] fill-neutral-500 font-mono">0</text>
 
               {/* Area & Line for Sent */}
               <path d={svgChart.areaPath} fill="var(--color-brand-secondary)" className="opacity-40" />
@@ -287,7 +287,7 @@ export default function EmailCampaignsPage() {
                   <circle cx={p.x} cy={p.yOpen} r={4} fill="#12b76a" stroke="#fff" strokeWidth={1.5} />
                   
                   {/* X axis labels */}
-                  <text x={p.x} y={svgChart.paddingTop + svgChart.chartHeight + 16} textAnchor="middle" className="text-[10px] fill-tertiary font-medium">{p.date}</text>
+                  <text x={p.x} y={svgChart.paddingTop + svgChart.chartHeight + 16} textAnchor="middle" className="text-[10px] fill-neutral-500 font-medium">{p.date}</text>
                 </g>
               ))}
             </svg>
