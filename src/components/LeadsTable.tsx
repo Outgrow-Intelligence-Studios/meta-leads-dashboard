@@ -24,8 +24,6 @@ const CELL_INPUT_CLASS =
   "w-full rounded-lg border border-secondary bg-primary px-3 py-2 text-sm text-primary shadow-xs outline-none transition-all placeholder:text-placeholder hover:border-primary focus:border-brand focus:ring-4 focus:ring-brand/12";
 const CELL_TEXTAREA_CLASS =
   "w-full min-w-[220px] resize-none rounded-lg border border-secondary bg-primary px-3 py-2 text-sm text-primary shadow-xs outline-none transition-all placeholder:text-placeholder hover:border-primary focus:border-brand focus:ring-4 focus:ring-brand/12";
-const STICKY_DATE_CLASS = "sticky left-0 z-10 bg-primary shadow-[1px_0_0_0_rgba(16,24,40,0.06)]";
-const STICKY_NAME_CLASS = "sticky left-[150px] z-10 bg-primary shadow-[1px_0_0_0_rgba(16,24,40,0.06)]";
 const SOURCE_PILL_CLASS =
   "inline-flex items-center rounded-md border border-secondary bg-secondary px-2.5 py-1 text-xs font-medium text-secondary";
 
@@ -79,9 +77,9 @@ function SkeletonBar({ className }: { className?: string }) {
 
 function LeadsTableSkeleton() {
   return (
-    <div className="overflow-x-auto bg-primary">
-      <div className="min-w-[1100px]">
-        <div className="grid grid-cols-[48px_102px_180px_140px_150px_160px_140px_140px_160px_120px] border-b border-secondary bg-primary/95 px-5 py-3">
+    <div className="overflow-hidden w-full bg-primary">
+      <div className="min-w-0 w-full">
+        <div className="grid grid-cols-[48px_100px_140px_110px_110px_110px_100px_100px_110px_100px] border-b border-secondary bg-primary/95 px-3 py-3">
           {["", "Created", "Lead", "Phone", "Source", "Lead Status", "Region", "Owner", "Next Follow-Up", ""].map((label, index) => (
             <div key={`${label}-${index}`} className="text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">
               {label}
@@ -91,20 +89,20 @@ function LeadsTableSkeleton() {
         {Array.from({ length: 6 }).map((_, rowIndex) => (
           <div
             key={rowIndex}
-            className="grid grid-cols-[48px_102px_180px_140px_150px_160px_140px_140px_160px_120px] items-center border-b border-secondary px-5 py-4"
+            className="grid grid-cols-[48px_100px_140px_110px_110px_110px_100px_100px_110px_100px] items-center border-b border-secondary px-3 py-4"
           >
             <SkeletonBar className="mt-1 h-5 w-5 rounded-md" />
             <div className="space-y-1.5">
               <SkeletonBar className="w-16" />
               <SkeletonBar className="w-20" />
             </div>
-            <SkeletonBar className="w-28" />
-            <SkeletonBar className="w-24" />
-            <SkeletonBar className="h-6 w-20 rounded-md" />
-            <SkeletonBar className="h-8 w-28 rounded-lg" />
-            <SkeletonBar className="w-24" />
             <SkeletonBar className="w-24" />
             <SkeletonBar className="w-20" />
+            <SkeletonBar className="h-6 w-16 rounded-md" />
+            <SkeletonBar className="h-8 w-24 rounded-lg" />
+            <SkeletonBar className="w-20" />
+            <SkeletonBar className="w-20" />
+            <SkeletonBar className="w-16" />
             <div className="flex justify-end">
               <SkeletonBar className="h-7 w-20 rounded-lg" />
             </div>
@@ -733,12 +731,12 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
           />
         )}
 
-        {/* Table — scrollable, no row shrinking */}
+        {/* Table — fluid screen width, no horizontal scroll */}
         {!loading && filtered.length > 0 && (
-          <div className="overflow-x-auto bg-primary">
-            <Table size="sm" aria-label="Leads table" className="w-full min-w-[1100px] table-striped-columns">
+          <div className="overflow-hidden w-full bg-primary">
+            <Table size="sm" aria-label="Leads table" className="w-full table-striped-columns">
               <Table.Header className="bg-primary/95 backdrop-blur-sm">
-                <Table.Head className="w-12 bg-primary/95">
+                <Table.Head className="w-10 bg-primary/95 px-2">
                   <SelectionToggle
                     label="Select all visible leads"
                     checked={allVisibleSelected}
@@ -746,23 +744,23 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     onChange={toggleVisibleSelection}
                   />
                 </Table.Head>
-                <Table.Head className={cx("w-[102px] bg-primary/95", STICKY_DATE_CLASS)}>
+                <Table.Head className="w-[100px] bg-primary/95 px-2">
                   <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary cursor-pointer">
                     Created
                   </button>
                 </Table.Head>
-                <Table.Head isRowHeader className={cx("w-[180px] bg-primary/95", STICKY_NAME_CLASS)}>
+                <Table.Head isRowHeader className="w-[140px] bg-primary/95 px-2">
                   <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.08em] text-secondary cursor-pointer">
                     Lead
                   </button>
                 </Table.Head>
-                <Table.Head className="min-w-[120px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Phone</Table.Head>
-                <Table.Head className="min-w-[130px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Source</Table.Head>
-                <Table.Head className="min-w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Lead Status</Table.Head>
-                <Table.Head className="min-w-[120px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Region</Table.Head>
-                <Table.Head className="min-w-[120px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Owner</Table.Head>
-                <Table.Head className="min-w-[140px] text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Next Follow-Up</Table.Head>
-                <Table.Head className="min-w-[120px] bg-primary/95 text-right">{""}</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Phone</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Source</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Lead Status</Table.Head>
+                <Table.Head className="w-[100px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Region</Table.Head>
+                <Table.Head className="w-[100px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Owner</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-xs font-semibold uppercase tracking-[0.08em] text-secondary">Next Follow-Up</Table.Head>
+                <Table.Head className="w-[100px] bg-primary/95 px-2 text-right">{""}</Table.Head>
               </Table.Header>
               <Table.Body>
                 {paginatedLeads.map((lead) => (
@@ -852,21 +850,21 @@ function LeadRow({
 }) {
   return (
     <Table.Row className={cx("group h-auto align-middle", getRowBgClass(isSelected))}>
-      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 w-10", getCellBgClass(isSelected, false))}>
         <SelectionToggle
           label={`Select ${lead.name || "lead"}`}
           checked={isSelected}
           onChange={(checked) => onSelectionChange(lead.id, checked)}
         />
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 sticky left-0 z-10 shadow-[1px_0_0_0_rgba(16,24,40,0.06)]", getCellBgClass(isSelected, true))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px]", getCellBgClass(isSelected, false))}>
         <div className="space-y-0.5">
           <div className="text-sm font-medium text-primary">{formatShortDate(lead.created_at)}</div>
           <div className="text-[11px] text-tertiary">{formatDate(lead.created_at)}</div>
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 sticky left-[150px] z-10 shadow-[1px_0_0_0_rgba(16,24,40,0.06)]", getCellBgClass(isSelected, true))}>
-        <div className="flex items-center justify-between gap-2">
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[140px]", getCellBgClass(isSelected, false))}>
+        <div className="flex items-center justify-between gap-1.5 min-w-0">
           <div className="text-sm font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
           <button
             onClick={() => onCopy(lead)}
@@ -877,18 +875,18 @@ function LeadRow({
           </button>
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
-        <div className="text-sm text-secondary">{lead.phone || "\u2014"}</div>
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
+        <div className="text-sm text-secondary truncate">{lead.phone || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
-        <span className={SOURCE_PILL_CLASS}>{lead.source || "\u2014"}</span>
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
+        <span className={cx(SOURCE_PILL_CLASS, "truncate max-w-full block text-center")}>{lead.source || "\u2014"}</span>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
           className={cx(
-            "cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-medium shadow-xs outline-none transition-all focus:ring-4 focus:ring-brand/12",
+            "cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium shadow-xs outline-none transition-all focus:ring-4 focus:ring-brand/12 w-full",
             getStatusClass(lead.status),
           )}
         >
@@ -897,22 +895,21 @@ function LeadRow({
           ))}
         </select>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px]", getCellBgClass(isSelected, false))}>
         <div className="text-sm text-secondary truncate">{lead.location || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px]", getCellBgClass(isSelected, false))}>
         <div className="text-sm text-secondary truncate">{lead.sales_person || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2", getCellBgClass(isSelected, false))}>
-        <div className="text-sm text-secondary">
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[110px]", getCellBgClass(isSelected, false))}>
+        <div className="text-sm text-secondary truncate">
           {lead.follow_up ? formatShortDate(lead.follow_up) : "\u2014"}
         </div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 text-right", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 max-w-[100px] text-right", getCellBgClass(isSelected, false))}>
         <Button
           size="xs"
           color="secondary"
-          iconLeading={Eye}
           onClick={() => onOpenDetails(lead)}
         >
           View Details
