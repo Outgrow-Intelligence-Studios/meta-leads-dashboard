@@ -28,6 +28,7 @@ function getLeadInsights(leads, now = new Date()) {
     Hot: 0,
     Won: 0,
     Lost: 0,
+    "No Ans": 0,
   };
 
   let newToday = 0;

@@ -19,7 +19,21 @@ type Props = {
   loading: boolean;
 };
 
-const STATUSES = ["New", "Contacted", "Hot", "Won", "Lost"] as const;
+const STATUSES = ["New", "Contacted", "Hot", "Won", "Lost", "No Ans"] as const;
+const OWNERS = [
+  "Abhay Shankar",
+  "Ravi Purohit",
+  "Dipaya",
+  "Rahul Shukla",
+  "Sarah Redkar",
+  "Ankur Sharma",
+  "Ram Jadhav",
+  "Bala Balaji Nagalla",
+  "Madan Raj",
+  "Balanagaraj",
+  "Archana",
+  "Hiren Gurjar"
+] as const;
 const CELL_INPUT_CLASS =
   "w-full rounded-lg border border-secondary bg-primary px-3 py-2 text-sm text-primary shadow-xs outline-none transition-all placeholder:text-placeholder hover:border-primary focus:border-brand focus:ring-4 focus:ring-brand/12";
 const CELL_TEXTAREA_CLASS =
@@ -32,6 +46,7 @@ function getStatusClass(status: Lead["status"]) {
   if (status === "Contacted") return "text-utility-yellow-700 ring-utility-yellow-200 bg-utility-yellow-50";
   if (status === "Hot") return "text-utility-red-700 ring-utility-red-200 bg-utility-red-50";
   if (status === "Won") return "text-utility-green-700 ring-utility-green-200 bg-utility-green-50";
+  if (status === "No Ans") return "text-utility-neutral-700 ring-utility-neutral-200 bg-utility-neutral-50";
   return "text-fg-quaternary ring-border-secondary bg-primary";
 }
 
@@ -899,7 +914,16 @@ function LeadRow({
         <div className="text-xs text-secondary truncate">{lead.location || "\u2014"}</div>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-xs text-secondary truncate">{lead.sales_person || "\u2014"}</div>
+        <select
+          value={lead.sales_person || ""}
+          onChange={(e) => persistCrmFields(lead, { sales_person: e.target.value }, "sales_person", "Owner updated.")}
+          className="cursor-pointer rounded-lg border border-secondary bg-primary px-2.5 py-1 text-xs font-medium shadow-xs outline-none transition-all focus:border-brand focus:ring-4 focus:ring-brand/12 w-full text-secondary"
+        >
+          <option value="">Unassigned</option>
+          {OWNERS.map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="text-xs text-secondary truncate">
@@ -1122,14 +1146,20 @@ function LeadDetailsDrawer({
             <div>
               <label className="text-xs font-semibold text-secondary block mb-1">Owner</label>
               <div className="relative">
-                <input
-                  type="text"
+                <select
                   value={draft.sales_person}
-                  onChange={(e) => setDraft((prev) => ({ ...prev, sales_person: e.target.value }))}
-                  onBlur={() => handleFieldBlur("sales_person", "Owner updated.")}
-                  placeholder="Assign owner"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDraft((prev) => ({ ...prev, sales_person: val }));
+                    onCrmFieldSave(lead, { sales_person: val }, "sales_person", "Owner updated.");
+                  }}
                   className={CELL_INPUT_CLASS}
-                />
+                >
+                  <option value="">Unassigned</option>
+                  {OWNERS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
                 {saving === "sales_person" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
               </div>
             </div>

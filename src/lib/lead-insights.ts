@@ -1,4 +1,4 @@
-export type LeadStatus = "New" | "Contacted" | "Hot" | "Won" | "Lost";
+export type LeadStatus = "New" | "Contacted" | "Hot" | "Won" | "Lost" | "No Ans";
 
 export type LeadInsightInput = {
   status: LeadStatus;
@@ -40,6 +40,7 @@ export function getLeadInsights(leads: LeadInsightInput[], now = new Date()): Le
     Hot: 0,
     Won: 0,
     Lost: 0,
+    "No Ans": 0,
   };
 
   let newToday = 0;

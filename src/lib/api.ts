@@ -11,7 +11,7 @@ export type Lead = {
   sales_person: string;
   remark_1: string;
   remark_2: string;
-  status: "New" | "Contacted" | "Hot" | "Won" | "Lost";
+  status: "New" | "Contacted" | "Hot" | "Won" | "Lost" | "No Ans";
   follow_up: string | null;
   follow_up_2: string | null;
   created_at: string;
@@ -199,55 +199,111 @@ export async function fetchLeads(): Promise<Lead[]> {
     }
   }
 
-  const merged = new Map<string, Lead>();
-  const sheetEmailMap = new Map<string, Lead>();
-  for (const s of sheetLeads) {
-    if (s.email) {
-      sheetEmailMap.set(s.email.toLowerCase(), s);
+  // Step 1: Collect all leads
+  const allLeads = [...supabaseLeads, ...sheetLeads];
+
+  // Step 2: Group by email (excluding empty emails)
+  const grouped = new Map<string, Lead[]>();
+  const emailLessLeads: Lead[] = [];
+
+  for (const l of allLeads) {
+    const emailKey = l.email ? l.email.trim().toLowerCase() : "";
+    if (!emailKey) {
+      // Avoid showing legacy corrupt empty rows (no name, no email, and no phone)
+      if (l.name || l.email || (l.phone && l.phone !== "N/A")) {
+        emailLessLeads.push(l);
+      }
+    } else {
+      if (!grouped.has(emailKey)) {
+        grouped.set(emailKey, []);
+      }
+      grouped.get(emailKey)!.push(l);
     }
   }
 
-  for (const l of supabaseLeads) {
-    const emailKey = l.email.toLowerCase();
-    const sheetLead = emailKey ? sheetEmailMap.get(emailKey) : null;
+  // Step 3: Merge each group
+  const mergedLeadsList: Lead[] = [];
 
-    if (sheetLead) {
-      const mergedLead: Lead = {
-        id: l.id,
-        name: sheetLead.name || l.name,
-        email: sheetLead.email || l.email,
-        phone: sheetLead.phone || l.phone,
-        source: sheetLead.source || l.source,
-        notes: sheetLead.notes || l.notes,
-        location: sheetLead.location || l.location,
-        sales_person: sheetLead.sales_person || l.sales_person,
-        remark_1: sheetLead.remark_1 || l.remark_1,
-        remark_2: sheetLead.remark_2 || l.remark_2,
-        status: l.status || sheetLead.status || "New",
-        follow_up: l.follow_up,
-        follow_up_2: l.follow_up_2,
-        created_at: sheetLead.created_at || l.created_at,
-        updated_at: new Date().toISOString(),
-      };
+  for (const [_, group] of grouped.entries()) {
+    if (group.length === 1) {
+      mergedLeadsList.push(group[0]);
+      continue;
+    }
 
-      merged.set(l.id, mergedLead);
+    // Sort group:
+    // 1. Supabase leads first (they have UUID, sheet leads have "sheet-" prefix)
+    // 2. Most recently created lead first
+    group.sort((a, b) => {
+      const aIsSupabase = !a.id.startsWith("sheet-");
+      const bIsSupabase = !b.id.startsWith("sheet-");
+      if (aIsSupabase !== bIsSupabase) {
+        return aIsSupabase ? -1 : 1;
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
-      // Background sync: update Supabase if the merged record is different
+    const primary = group[0];
+    const duplicates = group.slice(1);
+
+    // Merge fields from duplicates into primary
+    const mergedLead: Lead = { ...primary };
+
+    // Combine notes, remarks without duplication
+    const notesSet = new Set<string>();
+    if (primary.notes) notesSet.add(primary.notes);
+
+    const remark1Set = new Set<string>();
+    if (primary.remark_1) remark1Set.add(primary.remark_1);
+
+    const remark2Set = new Set<string>();
+    if (primary.remark_2) remark2Set.add(primary.remark_2);
+
+    for (const dup of duplicates) {
+      if (!mergedLead.name && dup.name) mergedLead.name = dup.name;
+      if ((!mergedLead.phone || mergedLead.phone === "N/A") && dup.phone && dup.phone !== "N/A") {
+        mergedLead.phone = dup.phone;
+      }
+      if ((!mergedLead.source || mergedLead.source === "Landing Page") && dup.source && dup.source !== "Landing Page") {
+        mergedLead.source = dup.source;
+      }
+      if (!mergedLead.location && dup.location) mergedLead.location = dup.location;
+      if (!mergedLead.sales_person && dup.sales_person) mergedLead.sales_person = dup.sales_person;
+      if (!mergedLead.follow_up && dup.follow_up) mergedLead.follow_up = dup.follow_up;
+      if (!mergedLead.follow_up_2 && dup.follow_up_2) mergedLead.follow_up_2 = dup.follow_up_2;
+
+      // Keep the latest status if primary is New but a duplicate has an active status
+      if (mergedLead.status === "New" && dup.status !== "New") {
+        mergedLead.status = dup.status;
+      }
+
+      if (dup.notes) notesSet.add(dup.notes);
+      if (dup.remark_1) remark1Set.add(dup.remark_1);
+      if (dup.remark_2) remark2Set.add(dup.remark_2);
+    }
+
+    mergedLead.notes = Array.from(notesSet).join(" | ");
+    mergedLead.remark_1 = Array.from(remark1Set).join(" | ");
+    mergedLead.remark_2 = Array.from(remark2Set).join(" | ");
+    mergedLead.updated_at = new Date().toISOString();
+
+    mergedLeadsList.push(mergedLead);
+
+    // Background sync: if primary is a Supabase lead, update it in DB with merged updates
+    if (!primary.id.startsWith("sheet-")) {
       const hasUpdates =
-        mergedLead.name !== l.name ||
-        mergedLead.email !== l.email ||
-        mergedLead.phone !== l.phone ||
-        mergedLead.source !== l.source ||
-        mergedLead.location !== l.location ||
-        mergedLead.sales_person !== l.sales_person ||
-        mergedLead.notes !== l.notes ||
-        mergedLead.remark_1 !== l.remark_1 ||
-        mergedLead.remark_2 !== l.remark_2;
+        mergedLead.name !== primary.name ||
+        mergedLead.phone !== primary.phone ||
+        mergedLead.source !== primary.source ||
+        mergedLead.location !== primary.location ||
+        mergedLead.sales_person !== primary.sales_person ||
+        mergedLead.notes !== primary.notes ||
+        mergedLead.remark_1 !== primary.remark_1 ||
+        mergedLead.remark_2 !== primary.remark_2 ||
+        mergedLead.status !== primary.status;
 
       if (hasUpdates) {
-        updateLead(l.id, {
+        updateLead(primary.id, {
           name: mergedLead.name,
-          email: mergedLead.email,
           phone: mergedLead.phone,
           source: mergedLead.source,
           location: mergedLead.location,
@@ -255,23 +311,17 @@ export async function fetchLeads(): Promise<Lead[]> {
           notes: mergedLead.notes,
           remark_1: mergedLead.remark_1,
           remark_2: mergedLead.remark_2,
-        }, l).catch(() => {});
-      }
-
-      sheetEmailMap.delete(emailKey);
-    } else {
-      // Avoid showing legacy corrupt empty rows (no name and no email)
-      if (l.name || l.email) {
-        merged.set(l.id, l);
+          status: mergedLead.status,
+        }, primary).catch(() => {});
       }
     }
   }
 
-  for (const s of sheetEmailMap.values()) {
-    merged.set(s.id, s);
-  }
+  // Add the emailless leads
+  mergedLeadsList.push(...emailLessLeads);
 
-  return Array.from(merged.values()).sort(
+  // Sort final list by created_at descending
+  return mergedLeadsList.sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 }
