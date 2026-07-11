@@ -416,6 +416,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
   function exportCsv(rowsToExport = filtered) {
     const BOM = "\uFEFF";
+    const MAX_NOTE_LEN = 500;
     const headers = [
       "ID",
       "Name",
@@ -434,6 +435,18 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
       "Updated At",
     ];
 
+    function cleanText(value: unknown): string {
+      let str = String(value ?? "");
+      str = str.replace(/[\r\n]+/g, " ").trim();
+      const parts = str.split(" | ");
+      const unique = [...new Set(parts.map((p) => p.trim()).filter(Boolean))];
+      str = unique.join(" | ");
+      if (str.length > MAX_NOTE_LEN) {
+        str = str.slice(0, MAX_NOTE_LEN) + "...";
+      }
+      return str;
+    }
+
     function escapeCsvField(value: unknown): string {
       const str = String(value ?? "");
       const hasSpecialChars = str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r");
@@ -446,18 +459,18 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     const rows = rowsToExport.map((l) =>
       [
         l.id,
-        l.name,
+        cleanText(l.name),
         l.email,
         l.phone,
-        l.source,
+        cleanText(l.source),
         l.status,
-        l.location,
-        l.notes,
+        cleanText(l.location),
+        cleanText(l.notes),
         l.follow_up || "",
         l.follow_up_2 || "",
-        l.sales_person,
-        l.remark_1,
-        l.remark_2,
+        cleanText(l.sales_person),
+        cleanText(l.remark_1),
+        cleanText(l.remark_2),
         l.created_at,
         l.updated_at,
       ]
