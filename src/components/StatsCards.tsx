@@ -1,4 +1,4 @@
-import { Users01, Zap, Inbox01, CheckCircle, Calendar, Target01 } from "@untitledui/icons";
+import { Users01, Zap, Inbox01, Calendar, Target01 } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 
 function calculateDelta(current: number, previous: number): { value: string; tone: "up" | "down" | "neutral" } {

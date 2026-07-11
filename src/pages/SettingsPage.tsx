@@ -54,7 +54,8 @@ export default function SettingsPage() {
               setPassword(val);
               if (error) setError(false);
             }}
-            error={error ? "Incorrect password" : undefined}
+            isInvalid={error}
+            hint={error ? "Incorrect password" : undefined}
           />
           <Button type="submit" color="primary" className="w-full">
             Unlock Settings

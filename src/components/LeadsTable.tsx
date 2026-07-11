@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Eye, Trash01, X } from "@untitledui/icons";
+import { CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Trash01, X } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
-import { Badge } from "@/components/base/badges/badges";
 import { Button } from "@/components/base/buttons/button";
 import { CheckboxBase } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
@@ -48,18 +47,6 @@ function getStatusClass(status: Lead["status"]) {
   if (status === "Won") return "text-utility-green-700 ring-utility-green-200 bg-utility-green-50";
   if (status === "No Ans") return "text-utility-neutral-700 ring-utility-neutral-200 bg-utility-neutral-50";
   return "text-fg-quaternary ring-border-secondary bg-primary";
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function formatShortDate(iso: string | null) {
@@ -428,24 +415,37 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
   }
 
   function exportCsv(rowsToExport = filtered) {
+    const BOM = "\uFEFF";
     const headers = [
-      "Created",
-      "Lead",
+      "ID",
+      "Name",
       "Email",
       "Phone",
       "Source",
-      "Lead Status",
-      "Region",
+      "Status",
+      "City",
       "Notes",
-      "Next Follow-Up",
-      "Final Follow-Up",
+      "Follow-Up 1",
+      "Follow-Up 2",
       "Owner",
-      "Note 1",
-      "Note 2",
+      "Remark 1",
+      "Remark 2",
+      "Created At",
+      "Updated At",
     ];
+
+    function escapeCsvField(value: unknown): string {
+      const str = String(value ?? "");
+      const hasSpecialChars = str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r");
+      if (hasSpecialChars) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    }
+
     const rows = rowsToExport.map((l) =>
       [
-        l.created_at,
+        l.id,
         l.name,
         l.email,
         l.phone,
@@ -458,11 +458,15 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         l.sales_person,
         l.remark_1,
         l.remark_2,
+        l.created_at,
+        l.updated_at,
       ]
-        .map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`)
+        .map(escapeCsvField)
         .join(",")
     );
-    const blob = new Blob([[headers.join(","), ...rows].join("\n")], {
+
+    const csvContent = BOM + [headers.map(escapeCsvField).join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], {
       type: "text/csv;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
@@ -581,7 +585,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                   <SelectItem key={s} id={s} label={s} />
                 ))}
               </Select>
-              <Button size="sm" color="secondary" iconLeading={Download01} onClick={exportCsv}>
+              <Button size="sm" color="secondary" iconLeading={Download01} onClick={() => exportCsv()}>
                 Export
               </Button>
               <Button size="sm" color="primary" iconLeading={Plus} onClick={() => setShowAddForm(!showAddForm)}>

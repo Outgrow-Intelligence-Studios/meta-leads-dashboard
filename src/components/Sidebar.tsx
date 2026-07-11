@@ -226,7 +226,7 @@ export default function Sidebar({
                 </Button>
                 <Button
                   className="flex-1"
-                  color="error"
+                  color="primary-destructive"
                   onClick={handleSignOut}
                 >
                   Yes, Sign out

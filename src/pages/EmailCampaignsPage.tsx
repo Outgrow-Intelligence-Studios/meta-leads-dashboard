@@ -3,9 +3,7 @@ import {
   Activity, 
   AlertCircle, 
   BarChart01, 
-  Calendar, 
   CheckCircle, 
-  HelpCircle, 
   Mail01, 
   SearchLg, 
   X 
@@ -19,7 +17,7 @@ import {
 import { Table, TableCard } from "@/components/application/table/table";
 import { Badge } from "@/components/base/badges/badges";
 import { Input } from "@/components/base/input/input";
-import { Button } from "@/components/base/buttons/button";
+
 
 export default function EmailCampaignsPage() {
   const [campaigns, setCampaigns] = useState<CampaignAnalytics[]>([]);
@@ -303,7 +301,7 @@ export default function EmailCampaignsPage() {
               placeholder="Search campaigns or subject..."
               value={search}
               onChange={(v) => setSearch(v)}
-              iconLeading={SearchLg}
+              icon={SearchLg}
             />
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto self-start sm:self-center border border-secondary p-1 rounded-lg bg-secondary">
