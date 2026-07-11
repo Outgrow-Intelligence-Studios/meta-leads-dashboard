@@ -19,7 +19,7 @@ type Props = {
 };
 
 const STATUSES = ["New", "Contacted", "Hot", "Won", "Lost", "No Ans"] as const;
-const OWNERS = [
+const KNOWN_OWNERS = [
   "Abhay Shankar",
   "Ravi Purohit",
   "Dipaya",
@@ -263,6 +263,14 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     if (!selectedLeadForDetails) return null;
     return leads.find((l) => l.id === selectedLeadForDetails.id) || selectedLeadForDetails;
   }, [leads, selectedLeadForDetails]);
+
+  const OWNERS = useMemo(() => {
+    const dataOwners = leads
+      .map((l) => (l.sales_person || "").trim())
+      .filter(Boolean);
+    const unique = [...new Set([...KNOWN_OWNERS, ...dataOwners])].sort();
+    return unique;
+  }, [leads]);
 
   useEffect(() => {
     if (!toast) return;
@@ -803,8 +811,10 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                     key={lead.id}
                     lead={lead}
                     isSelected={selectedLeadIds.has(lead.id)}
+                    owners={OWNERS}
                     onSelectionChange={toggleLeadSelection}
                     onStatusChange={changeStatus}
+                    onCrmFieldSave={persistCrmFields}
                     onCopy={handleCopyLead}
                     onOpenDetails={setSelectedLeadForDetails}
                   />
@@ -835,6 +845,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         <LeadDetailsDrawer
           lead={currentDetailsLead}
           saving={savingLead[currentDetailsLead.id] || null}
+          owners={OWNERS}
           onClose={() => setSelectedLeadForDetails(null)}
           onCrmFieldSave={persistCrmFields}
           onStatusChange={changeStatus}
@@ -871,15 +882,19 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 function LeadRow({
   lead,
   isSelected,
+  owners,
   onSelectionChange,
   onStatusChange,
+  onCrmFieldSave,
   onCopy,
   onOpenDetails,
 }: {
   lead: Lead;
   isSelected: boolean;
+  owners: string[];
   onSelectionChange: (id: string, checked: boolean) => void;
   onStatusChange: (id: string, status: string) => void;
+  onCrmFieldSave: (lead: Lead, updates: Partial<Lead>, key: keyof Lead, msg: string) => void;
   onCopy: (lead: Lead) => void;
   onOpenDetails: (lead: Lead) => void;
 }) {
@@ -933,11 +948,11 @@ function LeadRow({
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <select
           value={lead.sales_person || ""}
-          onChange={(e) => persistCrmFields(lead, { sales_person: e.target.value }, "sales_person", "Owner updated.")}
+          onChange={(e) => onCrmFieldSave(lead, { sales_person: e.target.value }, "sales_person", "Owner updated.")}
           className="cursor-pointer rounded-lg border border-secondary bg-primary px-2.5 py-1 text-xs font-medium shadow-xs outline-none transition-all focus:border-brand focus:ring-4 focus:ring-brand/12 w-full text-secondary"
         >
           <option value="">Unassigned</option>
-          {OWNERS.map((o) => (
+          {owners.map((o) => (
             <option key={o} value={o}>{o}</option>
           ))}
         </select>
@@ -963,6 +978,7 @@ function LeadRow({
 function LeadDetailsDrawer({
   lead,
   saving,
+  owners,
   onClose,
   onCrmFieldSave,
   onStatusChange,
@@ -973,6 +989,7 @@ function LeadDetailsDrawer({
 }: {
   lead: Lead;
   saving: string | null;
+  owners: string[];
   onClose: () => void;
   onCrmFieldSave: (
     lead: Lead,
@@ -1173,7 +1190,7 @@ function LeadDetailsDrawer({
                   className={CELL_INPUT_CLASS}
                 >
                   <option value="">Unassigned</option>
-                  {OWNERS.map((o) => (
+          {owners.map((o) => (
                     <option key={o} value={o}>{o}</option>
                   ))}
                 </select>
