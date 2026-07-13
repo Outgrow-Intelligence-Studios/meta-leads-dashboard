@@ -250,13 +250,28 @@ export async function fetchLeads(): Promise<Lead[]> {
 
     // Combine notes, remarks without duplication
     const notesSet = new Set<string>();
-    if (primary.notes) notesSet.add(primary.notes);
+    if (primary.notes) {
+      primary.notes.split(" | ").forEach((p) => {
+        const trimmed = p.trim();
+        if (trimmed) notesSet.add(trimmed);
+      });
+    }
 
     const remark1Set = new Set<string>();
-    if (primary.remark_1) remark1Set.add(primary.remark_1);
+    if (primary.remark_1) {
+      primary.remark_1.split(" | ").forEach((p) => {
+        const trimmed = p.trim();
+        if (trimmed) remark1Set.add(trimmed);
+      });
+    }
 
     const remark2Set = new Set<string>();
-    if (primary.remark_2) remark2Set.add(primary.remark_2);
+    if (primary.remark_2) {
+      primary.remark_2.split(" | ").forEach((p) => {
+        const trimmed = p.trim();
+        if (trimmed) remark2Set.add(trimmed);
+      });
+    }
 
     for (const dup of duplicates) {
       if (!mergedLead.name && dup.name) mergedLead.name = dup.name;
@@ -276,9 +291,24 @@ export async function fetchLeads(): Promise<Lead[]> {
         mergedLead.status = dup.status;
       }
 
-      if (dup.notes) notesSet.add(dup.notes);
-      if (dup.remark_1) remark1Set.add(dup.remark_1);
-      if (dup.remark_2) remark2Set.add(dup.remark_2);
+      if (dup.notes) {
+        dup.notes.split(" | ").forEach((p) => {
+          const trimmed = p.trim();
+          if (trimmed) notesSet.add(trimmed);
+        });
+      }
+      if (dup.remark_1) {
+        dup.remark_1.split(" | ").forEach((p) => {
+          const trimmed = p.trim();
+          if (trimmed) remark1Set.add(trimmed);
+        });
+      }
+      if (dup.remark_2) {
+        dup.remark_2.split(" | ").forEach((p) => {
+          const trimmed = p.trim();
+          if (trimmed) remark2Set.add(trimmed);
+        });
+      }
     }
 
     mergedLead.notes = Array.from(notesSet).join(" | ");
