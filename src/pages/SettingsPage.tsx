@@ -123,7 +123,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t border-secondary">
-                  <Button size="sm" color="link-gray" onClick={handleDisconnect}>
+                  <Button size="sm" color="link-gray" onPress={handleDisconnect}>
                     Disconnect Sync
                   </Button>
                   <div className="flex items-center gap-3">

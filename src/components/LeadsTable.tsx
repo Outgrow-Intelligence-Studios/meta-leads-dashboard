@@ -190,7 +190,7 @@ function PaginationControls({
           size="xs"
           color="secondary"
           isDisabled={page === 1}
-          onClick={() => onPageChange(page - 1)}
+          onPress={() => onPageChange(page - 1)}
           iconLeading={ChevronLeft}
         >
           Previous
@@ -224,7 +224,7 @@ function PaginationControls({
           size="xs"
           color="secondary"
           isDisabled={page === totalPages}
-          onClick={() => onPageChange(page + 1)}
+          onPress={() => onPageChange(page + 1)}
           iconTrailing={ChevronRight}
         >
           Next
@@ -619,10 +619,10 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                   <SelectItem key={s} id={s} label={s} />
                 ))}
               </Select>
-              <Button size="sm" color="secondary" iconLeading={Download01} onClick={() => exportCsv(filtered)}>
+              <Button size="sm" color="secondary" iconLeading={Download01} onPress={() => exportCsv(filtered)}>
                 Export
               </Button>
-              <Button size="sm" color="primary" iconLeading={Plus} onClick={() => setShowAddForm(!showAddForm)}>
+              <Button size="sm" color="primary" iconLeading={Plus} onPress={() => setShowAddForm(!showAddForm)}>
                 Add Lead
               </Button>
             </div>
@@ -645,7 +645,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 size="xs"
                 color="secondary"
                 iconLeading={CheckCircle}
-                onClick={() => {
+                onPress={() => {
                   const next = new Set<string>();
                   filtered.forEach(l => next.add(l.id));
                   setSelectedLeadIds(next);
@@ -658,7 +658,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 size="xs"
                 color="secondary"
                 iconLeading={X}
-                onClick={() => setSelectedLeadIds(new Set())}
+                onPress={() => setSelectedLeadIds(new Set())}
               >
                 Deselect All
               </Button>
@@ -667,7 +667,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 size="xs"
                 color="secondary"
                 iconLeading={Download01}
-                onClick={() => exportCsv(selectedLeads)}
+                onPress={() => exportCsv(selectedLeads)}
               >
                 Export
               </Button>
@@ -677,7 +677,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 color="primary-destructive"
                 iconLeading={Trash01}
                 isLoading={bulkDeleting}
-                onClick={bulkDeleteSelected}
+                onPress={bulkDeleteSelected}
               >
                 Delete
               </Button>
@@ -743,7 +743,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                   />
                 </div>
                 <div className="flex gap-2 mt-2 md:mt-0">
-                  <Button size="sm" color="secondary" onClick={() => setShowAddForm(false)} isDisabled={addingLead}>
+                  <Button size="sm" color="secondary" onPress={() => setShowAddForm(false)} isDisabled={addingLead}>
                     Cancel
                   </Button>
                   <Button size="sm" color="primary" isLoading={addingLead} type="submit">
@@ -979,7 +979,7 @@ function LeadRow({
         <Button
           size="xs"
           color="secondary"
-          onClick={() => onOpenDetails(lead)}
+          onPress={() => onOpenDetails(lead)}
         >
           View Details
         </Button>

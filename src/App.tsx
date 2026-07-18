@@ -153,7 +153,7 @@ export default function App() {
               color="secondary"
               iconLeading={RefreshCw01}
               isLoading={loading}
-              onClick={loadData}
+              onPress={loadData}
             >
               Refresh
             </Button>
@@ -162,7 +162,7 @@ export default function App() {
               size="sm"
               color={currentPage === "settings" ? "primary" : "secondary"}
               iconLeading={Settings01}
-              onClick={() => {
+              onPress={() => {
                 window.location.hash = "#/settings";
               }}
             >
@@ -188,7 +188,7 @@ export default function App() {
               <Button
                 size="xs"
                 color="secondary"
-                onClick={() => {
+                onPress={() => {
                   window.location.hash = "#/settings";
                 }}
               >
