@@ -427,81 +427,88 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
   }
 
   function exportCsv(rowsToExport = filtered) {
-    const BOM = "\uFEFF";
-    const headers = [
-      "ID",
-      "Name",
-      "Email",
-      "Phone",
-      "Source",
-      "Status",
-      "City",
-      "Notes",
-      "Follow-Up 1",
-      "Follow-Up 2",
-      "Owner",
-      "Remark 1",
-      "Remark 2",
-      "Created At",
-      "Updated At",
-    ];
+    setToast({ msg: "Exporting CSV...", tone: "ok" });
+    try {
+      const BOM = "\uFEFF";
+      const headers = [
+        "ID",
+        "Name",
+        "Email",
+        "Phone",
+        "Source",
+        "Status",
+        "City",
+        "Notes",
+        "Follow-Up 1",
+        "Follow-Up 2",
+        "Owner",
+        "Remark 1",
+        "Remark 2",
+        "Created At",
+        "Updated At",
+      ];
 
-    function cleanSimpleText(value: unknown): string {
-      let str = String(value ?? "");
-      return str.replace(/[\r\n]+/g, " ").trim();
-    }
-
-    function cleanMetadataText(value: unknown): string {
-      let str = String(value ?? "");
-      str = str.replace(/[\r\n]+/g, " ").trim();
-      const parts = str.split(" | ");
-      return deduplicateSegments(parts).join(" | ");
-    }
-
-    function escapeCsvField(value: unknown): string {
-      const str = String(value ?? "");
-      const hasSpecialChars = str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r");
-      if (hasSpecialChars) {
-        return `"${str.replace(/"/g, '""')}"`;
+      function cleanSimpleText(value: unknown): string {
+        let str = String(value ?? "");
+        return str.replace(/[\r\n]+/g, " ").trim();
       }
-      return str;
+
+      function cleanMetadataText(value: unknown): string {
+        let str = String(value ?? "");
+        str = str.replace(/[\r\n]+/g, " ").trim();
+        const parts = str.split(" | ");
+        return deduplicateSegments(parts).join(" | ");
+      }
+
+      function escapeCsvField(value: unknown): string {
+        const str = String(value ?? "");
+        const hasSpecialChars = str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r");
+        if (hasSpecialChars) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      }
+
+      const rows = rowsToExport.map((l) =>
+        [
+          l.id,
+          cleanSimpleText(l.name),
+          l.email,
+          l.phone,
+          cleanSimpleText(l.source),
+          l.status,
+          cleanSimpleText(l.location),
+          cleanMetadataText(l.notes),
+          l.follow_up || "",
+          l.follow_up_2 || "",
+          cleanSimpleText(l.sales_person),
+          cleanMetadataText(l.remark_1),
+          cleanMetadataText(l.remark_2),
+          l.created_at,
+          l.updated_at,
+        ]
+          .map(escapeCsvField)
+          .join(",")
+      );
+
+      const csvContent = BOM + [headers.map(escapeCsvField).join(","), ...rows].join("\n");
+      const blob = new Blob([csvContent], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `meta-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setToast({ msg: "CSV exported successfully", tone: "ok" });
+    } catch (e) {
+      console.error(e);
+      setToast({ msg: `Export failed: ${(e as Error).message}`, tone: "err" });
     }
-
-    const rows = rowsToExport.map((l) =>
-      [
-        l.id,
-        cleanSimpleText(l.name),
-        l.email,
-        l.phone,
-        cleanSimpleText(l.source),
-        l.status,
-        cleanSimpleText(l.location),
-        cleanMetadataText(l.notes),
-        l.follow_up || "",
-        l.follow_up_2 || "",
-        cleanSimpleText(l.sales_person),
-        cleanMetadataText(l.remark_1),
-        cleanMetadataText(l.remark_2),
-        l.created_at,
-        l.updated_at,
-      ]
-        .map(escapeCsvField)
-        .join(",")
-    );
-
-    const csvContent = BOM + [headers.map(escapeCsvField).join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `meta-leads-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.style.display = "none";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 
   const handleCopyLead = useCallback((lead: Lead) => {
