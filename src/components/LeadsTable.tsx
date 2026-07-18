@@ -619,6 +619,9 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                   <SelectItem key={s} id={s} label={s} />
                 ))}
               </Select>
+              <Button size="sm" color="secondary" iconLeading={Download01} onPress={() => exportCsv(filtered)}>
+                Export
+              </Button>
               <Button size="sm" color="primary" iconLeading={Plus} onPress={() => setShowAddForm(!showAddForm)}>
                 Add Lead
               </Button>
