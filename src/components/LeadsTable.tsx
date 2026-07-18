@@ -497,7 +497,10 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     const a = document.createElement("a");
     a.href = url;
     a.download = `meta-leads-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.style.display = "none";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
