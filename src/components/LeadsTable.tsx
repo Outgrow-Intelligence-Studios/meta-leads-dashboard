@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Trash01, X } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
-import { addLead, deleteLead, updateLead } from "../lib/api";
+import { addLead, deleteLead, updateLead, deduplicateSegments } from "../lib/api";
 import { Button } from "@/components/base/buttons/button";
 import { CheckboxBase } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
@@ -336,7 +336,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     onChange((prev) => prev.map((item) => (item.id === lead.id ? nextLead : item)));
     setSavingLead((s) => ({ ...s, [lead.id]: savingKey as string }));
     try {
-      await updateLead(lead.id, updates, lead);
+      const savedLead = await updateLead(lead.id, updates, lead);
+      onChange((prev) => prev.map((item) => (item.id === lead.id ? savedLead : item)));
       setToast({ msg: successMessage, tone: "ok" });
     } catch (e) {
       setToast({ msg: `Save failed: ${(e as Error).message}`, tone: "err" });
@@ -352,7 +353,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     onChange((prev) => prev.map((l) => (l.id === id ? { ...l, status: typedStatus } : l)));
     setSavingLead((s) => ({ ...s, [id]: "status" }));
     try {
-      await updateLead(id, { status: typedStatus }, lead);
+      const savedLead = await updateLead(id, { status: typedStatus }, lead);
+      onChange((prev) => prev.map((l) => (l.id === id ? savedLead : l)));
     } catch (e) {
       setToast({ msg: `Status update failed: ${(e as Error).message}`, tone: "err" });
     } finally {
@@ -365,7 +367,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     onChange((prev) => prev.map((l) => (l.id === id ? { ...l, follow_up: date || null } : l)));
     setSavingLead((s) => ({ ...s, [id]: "follow_up" }));
     try {
-      await updateLead(id, { follow_up: date || null }, lead);
+      const savedLead = await updateLead(id, { follow_up: date || null }, lead);
+      onChange((prev) => prev.map((l) => (l.id === id ? savedLead : l)));
       setToast({ msg: "Follow up 1 saved.", tone: "ok" });
     } catch (e) {
       setToast({ msg: `Follow up 1 failed: ${(e as Error).message}`, tone: "err" });
@@ -379,7 +382,8 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     onChange((prev) => prev.map((l) => (l.id === id ? { ...l, follow_up_2: date || null } : l)));
     setSavingLead((s) => ({ ...s, [id]: "follow_up_2" }));
     try {
-      await updateLead(id, { follow_up_2: date || null }, lead);
+      const savedLead = await updateLead(id, { follow_up_2: date || null }, lead);
+      onChange((prev) => prev.map((l) => (l.id === id ? savedLead : l)));
       setToast({ msg: "Follow up 2 saved.", tone: "ok" });
     } catch (e) {
       setToast({ msg: `Follow up 2 failed: ${(e as Error).message}`, tone: "err" });
@@ -424,7 +428,6 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
   function exportCsv(rowsToExport = filtered) {
     const BOM = "\uFEFF";
-    const MAX_NOTE_LEN = 500;
     const headers = [
       "ID",
       "Name",
@@ -443,16 +446,16 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
       "Updated At",
     ];
 
-    function cleanText(value: unknown): string {
+    function cleanSimpleText(value: unknown): string {
+      let str = String(value ?? "");
+      return str.replace(/[\r\n]+/g, " ").trim();
+    }
+
+    function cleanMetadataText(value: unknown): string {
       let str = String(value ?? "");
       str = str.replace(/[\r\n]+/g, " ").trim();
       const parts = str.split(" | ");
-      const unique = [...new Set(parts.map((p) => p.trim()).filter(Boolean))];
-      str = unique.join(" | ");
-      if (str.length > MAX_NOTE_LEN) {
-        str = str.slice(0, MAX_NOTE_LEN) + "...";
-      }
-      return str;
+      return deduplicateSegments(parts).join(" | ");
     }
 
     function escapeCsvField(value: unknown): string {
@@ -467,18 +470,18 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     const rows = rowsToExport.map((l) =>
       [
         l.id,
-        cleanText(l.name),
+        cleanSimpleText(l.name),
         l.email,
         l.phone,
-        cleanText(l.source),
+        cleanSimpleText(l.source),
         l.status,
-        cleanText(l.location),
-        cleanText(l.notes),
+        cleanSimpleText(l.location),
+        cleanMetadataText(l.notes),
         l.follow_up || "",
         l.follow_up_2 || "",
-        cleanText(l.sales_person),
-        cleanText(l.remark_1),
-        cleanText(l.remark_2),
+        cleanSimpleText(l.sales_person),
+        cleanMetadataText(l.remark_1),
+        cleanMetadataText(l.remark_2),
         l.created_at,
         l.updated_at,
       ]
@@ -606,7 +609,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                   <SelectItem key={s} id={s} label={s} />
                 ))}
               </Select>
-              <Button size="sm" color="secondary" iconLeading={Download01} onClick={() => exportCsv()}>
+              <Button size="sm" color="secondary" iconLeading={Download01} onClick={() => exportCsv(filtered)}>
                 Export
               </Button>
               <Button size="sm" color="primary" iconLeading={Plus} onClick={() => setShowAddForm(!showAddForm)}>
