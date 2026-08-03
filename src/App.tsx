@@ -69,7 +69,7 @@ export default function App() {
 
   const pageTitle =
     currentPage === "leads"
-      ? "Meta Leads"
+      ? "Ads Conversion"
       : currentPage === "email-campaigns"
       ? "Email Campaigns"
       : currentPage.charAt(0).toUpperCase() + currentPage.slice(1);

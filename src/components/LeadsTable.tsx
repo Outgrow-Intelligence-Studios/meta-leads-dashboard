@@ -49,6 +49,12 @@ function getStatusClass(status: Lead["status"]) {
   return "text-fg-quaternary ring-border-secondary bg-primary";
 }
 
+function getAdSourceClass(adSource: string) {
+  if (adSource === "Meta Ads") return "text-utility-blue-700 ring-utility-blue-200 bg-utility-blue-50";
+  if (adSource === "Google Ads") return "text-utility-green-700 ring-utility-green-200 bg-utility-green-50";
+  return "text-utility-neutral-700 ring-utility-neutral-200 bg-utility-neutral-50";
+}
+
 function formatShortDate(iso: string | null) {
   if (!iso) return "No date";
   const d = new Date(iso);
@@ -436,6 +442,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         "Email",
         "Phone",
         "Source",
+        "Ad Source",
         "Status",
         "City",
         "Notes",
@@ -484,6 +491,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
           l.email,
           l.phone,
           cleanSimpleText(l.source),
+          cleanSimpleText(l.ad_source || ""),
           l.status,
           cleanSimpleText(l.location),
           cleanMetadataText(l.notes),
@@ -817,6 +825,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 </Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Phone</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Source</Table.Head>
+                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Ad Source</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Status</Table.Head>
                 <Table.Head className="px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Region</Table.Head>
                 <Table.Head className="px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Owner</Table.Head>
@@ -947,6 +956,18 @@ function LeadRow({
         <span className={cx(SOURCE_PILL_CLASS, "truncate max-w-full block text-center")}>{lead.source || "\u2014"}</span>
       </Table.Cell>
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
+        {lead.ad_source ? (
+          <span className={cx(
+            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset truncate max-w-full text-center block",
+            getAdSourceClass(lead.ad_source)
+          )}>
+            {lead.ad_source}
+          </span>
+        ) : (
+          <span className="text-xs text-secondary block text-center">—</span>
+        )}
+      </Table.Cell>
+      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
@@ -1031,6 +1052,7 @@ function LeadDetailsDrawer({
     email: lead.email || "",
     phone: lead.phone || "",
     source: lead.source || "",
+    ad_source: lead.ad_source || "",
   });
   const initialDraft = useRef(draft);
 
@@ -1045,6 +1067,7 @@ function LeadDetailsDrawer({
       email: lead.email || "",
       phone: lead.phone || "",
       source: lead.source || "",
+      ad_source: lead.ad_source || "",
     };
     setDraft(nextDraft);
     initialDraft.current = nextDraft;
@@ -1161,6 +1184,26 @@ function LeadDetailsDrawer({
                   className={CELL_INPUT_CLASS}
                 />
                 {saving === "source" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-secondary block mb-1">Ad Source</label>
+              <div className="relative">
+                <select
+                  value={draft.ad_source || ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDraft((prev) => ({ ...prev, ad_source: val }));
+                    onCrmFieldSave(lead, { ad_source: val }, "ad_source", "Ad Source updated.");
+                  }}
+                  className={CELL_INPUT_CLASS}
+                >
+                  <option value="">None / Organic / Direct</option>
+                  <option value="Meta Ads">Meta Ads</option>
+                  <option value="Google Ads">Google Ads</option>
+                </select>
+                {saving === "ad_source" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
               </div>
             </div>
 

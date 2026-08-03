@@ -16,6 +16,7 @@ export type Lead = {
   follow_up_2: string | null;
   created_at: string;
   updated_at: string;
+  ad_source?: string;
 };
 
 const CRM_META_PREFIX = "__crm_meta__";
@@ -26,6 +27,7 @@ type LeadNotesMeta = {
   sales_person: string;
   remark_1: string;
   remark_2: string;
+  ad_source?: string;
 };
 
 function parseLeadNotes(raw: string): LeadNotesMeta {
@@ -36,6 +38,7 @@ function parseLeadNotes(raw: string): LeadNotesMeta {
       sales_person: "",
       remark_1: "",
       remark_2: "",
+      ad_source: "",
     };
   }
 
@@ -46,6 +49,7 @@ function parseLeadNotes(raw: string): LeadNotesMeta {
       sales_person: "",
       remark_1: "",
       remark_2: "",
+      ad_source: "",
     };
   }
 
@@ -57,6 +61,7 @@ function parseLeadNotes(raw: string): LeadNotesMeta {
       sales_person: String(parsed.sales_person ?? ""),
       remark_1: String(parsed.remark_1 ?? ""),
       remark_2: String(parsed.remark_2 ?? ""),
+      ad_source: String(parsed.ad_source ?? ""),
     };
   } catch {
     return {
@@ -65,6 +70,7 @@ function parseLeadNotes(raw: string): LeadNotesMeta {
       sales_person: "",
       remark_1: "",
       remark_2: "",
+      ad_source: "",
     };
   }
 }
@@ -76,13 +82,15 @@ function serializeLeadNotes(meta: Partial<LeadNotesMeta>): string {
     sales_person: String(meta.sales_person ?? ""),
     remark_1: String(meta.remark_1 ?? ""),
     remark_2: String(meta.remark_2 ?? ""),
+    ad_source: String(meta.ad_source ?? ""),
   };
 
   const hasStructuredFields =
     normalized.location ||
     normalized.sales_person ||
     normalized.remark_1 ||
-    normalized.remark_2;
+    normalized.remark_2 ||
+    normalized.ad_source;
 
   if (!hasStructuredFields) return normalized.feedback;
   return `${CRM_META_PREFIX}${JSON.stringify(normalized)}`;
@@ -98,6 +106,7 @@ function toDatabaseLeadUpdate(updates: Partial<Lead>, currentLead?: Lead) {
     remark_1,
     remark_2,
     notes,
+    ad_source,
     ...rest
   } = updates;
 
@@ -107,7 +116,8 @@ function toDatabaseLeadUpdate(updates: Partial<Lead>, currentLead?: Lead) {
     sales_person !== undefined ||
     remark_1 !== undefined ||
     remark_2 !== undefined ||
-    notes !== undefined;
+    notes !== undefined ||
+    ad_source !== undefined;
 
   if (hasNotesPayload) {
     payload.notes = serializeLeadNotes({
@@ -116,6 +126,7 @@ function toDatabaseLeadUpdate(updates: Partial<Lead>, currentLead?: Lead) {
       sales_person: sales_person !== undefined ? sales_person : (currentLead?.sales_person ?? ""),
       remark_1: remark_1 !== undefined ? remark_1 : (currentLead?.remark_1 ?? ""),
       remark_2: remark_2 !== undefined ? remark_2 : (currentLead?.remark_2 ?? ""),
+      ad_source: ad_source !== undefined ? ad_source : (currentLead?.ad_source ?? ""),
     });
   }
 
@@ -141,6 +152,26 @@ function toLead(row: Record<string, unknown>): Lead {
   const rawStatus = String(row.status ?? "New").trim();
   const isValidStatus = VALID_STATUSES.includes(rawStatus);
 
+  // Infer ad source
+  let adSource = leadNotes.ad_source || "";
+  if (!adSource) {
+    const utmSource = String(row.utm_source || "").toLowerCase();
+    const gclid = String(row.gclid || "");
+    if (
+      utmSource.includes("facebook") ||
+      utmSource.includes("instagram") ||
+      utmSource.includes("meta") ||
+      utmSource.includes("ig") ||
+      utmSource.includes("fb")
+    ) {
+      adSource = "Meta Ads";
+    } else if (utmSource.includes("google") || gclid) {
+      adSource = "Google Ads";
+    } else if (utmSource || gclid) {
+      adSource = "Google Ads";
+    }
+  }
+
   return {
     id: String(row.id ?? ""),
     name: String(row.name ?? ""),
@@ -157,6 +188,7 @@ function toLead(row: Record<string, unknown>): Lead {
     follow_up_2: row.follow_up_2 ? String(row.follow_up_2) : null,
     created_at: String(row.created_at ?? ""),
     updated_at: String(row.updated_at ?? ""),
+    ad_source: adSource,
   };
 }
 
@@ -195,6 +227,8 @@ export async function fetchLeads(): Promise<Lead[]> {
             follow_up_2: null,
             created_at: r.timestamp,
             updated_at: r.timestamp,
+            utm_source: r.utm_source,
+            gclid: r.gclid,
           })
         );
       }
@@ -368,6 +402,7 @@ export async function addLead(lead: {
   source?: string;
   notes?: string;
   status?: string;
+  ad_source?: string;
 }): Promise<Lead> {
   const { data, error } = await supabase
     .from("leads")
@@ -376,7 +411,7 @@ export async function addLead(lead: {
       email: lead.email,
       phone: lead.phone || "N/A",
       source: lead.source || "Landing Page",
-      notes: serializeLeadNotes({ feedback: lead.notes || "" }),
+      notes: serializeLeadNotes({ feedback: lead.notes || "", ad_source: lead.ad_source || "" }),
       status: lead.status || "New",
     })
     .select()

@@ -19,7 +19,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutGrid01, href: "#/dashboard" },
-  { label: "Meta Leads", icon: Users01, href: "#/leads" },
+  { label: "Ads Conversion", icon: Users01, href: "#/leads" },
   { label: "Email Campaigns", icon: Mail01, href: "#/email-campaigns" },
   { label: "Campaigns", icon: Announcement01, href: "#/campaigns", locked: true },
   { label: "Audience", icon: Target01, href: "#/audience", locked: true },
