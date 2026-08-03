@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Trash01, X } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
-import { addLead, deleteLead, updateLead, deduplicateSegments } from "../lib/api";
+import { addLead, deleteLead, updateLead } from "../lib/api";
 import { Button } from "@/components/base/buttons/button";
 import { CheckboxBase } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
@@ -457,7 +457,15 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
         let str = String(value ?? "");
         str = str.replace(/[\r\n]+/g, " ").trim();
         const parts = str.split(" | ");
-        return deduplicateSegments(parts).join(" | ");
+        // Deduplicate pipe-separated segments
+        const seen = new Set<string>();
+        const deduped = parts.filter((p) => {
+          const t = p.trim();
+          if (!t || seen.has(t)) return false;
+          seen.add(t);
+          return true;
+        });
+        return deduped.join(" | ");
       }
 
       function escapeCsvField(value: unknown): string {
