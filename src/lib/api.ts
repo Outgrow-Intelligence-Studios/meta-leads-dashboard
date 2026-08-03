@@ -125,7 +125,7 @@ function toDatabaseLeadUpdate(updates: Partial<Lead>, currentLead?: Lead) {
 const STORAGE_KEY = "meta_leads_apps_script_url";
 
 const DEFAULT_URL =
-  "https://script.google.com/macros/s/AKfycbxf2PZZ13u1SeUb4s-Zd4Ew1n7ruM57Q2o2TM9I5RGwSvIPlBXMia-_YvY62g4Zkk_j/exec";
+  "https://script.google.com/macros/s/AKfycbz-jP5TnOgJeuC8IdBZnuAuw_RMIZeIz3XSH00ebO9k_LwhL9e0fu1dTxMuH9AQQEjO/exec";
 
 export function getScriptUrl(): string {
   return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL;
@@ -137,6 +137,10 @@ export function setScriptUrl(url: string) {
 
 function toLead(row: Record<string, unknown>): Lead {
   const leadNotes = parseLeadNotes(String(row.notes ?? ""));
+  const VALID_STATUSES = ["New", "Contacted", "Hot", "Won", "Lost", "No Ans"];
+  const rawStatus = String(row.status ?? "New").trim();
+  const isValidStatus = VALID_STATUSES.includes(rawStatus);
+
   return {
     id: String(row.id ?? ""),
     name: String(row.name ?? ""),
@@ -144,83 +148,16 @@ function toLead(row: Record<string, unknown>): Lead {
     phone: String(row.phone ?? "N/A"),
     source: String(row.source ?? "Landing Page"),
     notes: leadNotes.feedback,
-    location: leadNotes.location,
+    location: leadNotes.location || (!isValidStatus ? rawStatus : ""),
     sales_person: leadNotes.sales_person,
     remark_1: leadNotes.remark_1,
     remark_2: leadNotes.remark_2,
-    status: (row.status ?? "New") as Lead["status"],
-    follow_up: (row.follow_up as string) || null,
-    follow_up_2: (row.follow_up_2 as string) || null,
-    created_at: row.created_at as string,
-    updated_at: row.updated_at as string,
+    status: (isValidStatus ? rawStatus : "New") as Lead["status"],
+    follow_up: row.follow_up ? String(row.follow_up) : null,
+    follow_up_2: row.follow_up_2 ? String(row.follow_up_2) : null,
+    created_at: String(row.created_at ?? ""),
+    updated_at: String(row.updated_at ?? ""),
   };
-}
-
-function levenshtein(a: string, b: string): number {
-  const matrix = [];
-  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-  for (let i = 1; i <= b.length; i++) {
-    for (let j = 1; j <= a.length; j++) {
-      if (b.charAt(i - 1) === a.charAt(j - 1)) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1,     // insertion
-          matrix[i - 1][j] + 1      // deletion
-        );
-      }
-    }
-  }
-  return matrix[b.length][a.length];
-}
-
-function areWordsFuzzyEqual(w1: string, w2: string): boolean {
-  if (w1 === w2) return true;
-  if (w1.length <= 3 || w2.length <= 3) return false;
-  const maxDist = w1.length > 6 ? 2 : 1;
-  return levenshtein(w1, w2) <= maxDist;
-}
-
-function isFuzzyDuplicate(shorter: string, longer: string): boolean {
-  const wordsShorter = shorter.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2);
-  const wordsLonger = longer.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 2);
-  
-  if (wordsShorter.length === 0) return true;
-  
-  let matches = 0;
-  for (const ws of wordsShorter) {
-    const found = wordsLonger.some(wl => areWordsFuzzyEqual(ws, wl));
-    if (found) matches++;
-  }
-  
-  return (matches / wordsShorter.length) >= 0.7;
-}
-
-export function deduplicateSegments(parts: string[]): string[] {
-  const cleaned = parts.map(p => p.trim()).filter(Boolean);
-  const sorted = [...cleaned].sort((a, b) => b.length - a.length);
-  const result: string[] = [];
-
-  for (const str of sorted) {
-    const isDup = result.some(accepted => {
-      // 1. Exact case-insensitive substring check
-      const normStr = str.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const normAcc = accepted.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (normAcc.includes(normStr)) return true;
-
-      // 2. Fuzzy word overlap check
-      return isFuzzyDuplicate(str, accepted);
-    });
-
-    if (!isDup) {
-      result.push(str);
-    }
-  }
-
-  // Restore relative original order
-  return cleaned.filter(p => result.includes(p));
 }
 
 export async function fetchLeads(): Promise<Lead[]> {
@@ -318,24 +255,24 @@ export async function fetchLeads(): Promise<Lead[]> {
     // Combine notes, remarks without duplication
     const notesSet = new Set<string>();
     if (primary.notes) {
-      primary.notes.split(" | ").forEach((p) => {
-        const trimmed = p.trim();
+      primary.notes.split(" | ").forEach(n => {
+        const trimmed = n.trim();
         if (trimmed) notesSet.add(trimmed);
       });
     }
 
     const remark1Set = new Set<string>();
     if (primary.remark_1) {
-      primary.remark_1.split(" | ").forEach((p) => {
-        const trimmed = p.trim();
+      primary.remark_1.split(" | ").forEach(r => {
+        const trimmed = r.trim();
         if (trimmed) remark1Set.add(trimmed);
       });
     }
 
     const remark2Set = new Set<string>();
     if (primary.remark_2) {
-      primary.remark_2.split(" | ").forEach((p) => {
-        const trimmed = p.trim();
+      primary.remark_2.split(" | ").forEach(r => {
+        const trimmed = r.trim();
         if (trimmed) remark2Set.add(trimmed);
       });
     }
@@ -353,34 +290,35 @@ export async function fetchLeads(): Promise<Lead[]> {
       if (!mergedLead.follow_up && dup.follow_up) mergedLead.follow_up = dup.follow_up;
       if (!mergedLead.follow_up_2 && dup.follow_up_2) mergedLead.follow_up_2 = dup.follow_up_2;
 
-      // Keep the latest status if primary is New but a duplicate has an active status
-      if (mergedLead.status === "New" && dup.status !== "New") {
+      // Keep the latest status if primary is New but a duplicate has a valid active status
+      const VALID_STATUSES = ["New", "Contacted", "Hot", "Won", "Lost", "No Ans"];
+      if (mergedLead.status === "New" && dup.status !== "New" && VALID_STATUSES.includes(dup.status)) {
         mergedLead.status = dup.status;
       }
 
       if (dup.notes) {
-        dup.notes.split(" | ").forEach((p) => {
-          const trimmed = p.trim();
+        dup.notes.split(" | ").forEach(n => {
+          const trimmed = n.trim();
           if (trimmed) notesSet.add(trimmed);
         });
       }
       if (dup.remark_1) {
-        dup.remark_1.split(" | ").forEach((p) => {
-          const trimmed = p.trim();
+        dup.remark_1.split(" | ").forEach(r => {
+          const trimmed = r.trim();
           if (trimmed) remark1Set.add(trimmed);
         });
       }
       if (dup.remark_2) {
-        dup.remark_2.split(" | ").forEach((p) => {
-          const trimmed = p.trim();
+        dup.remark_2.split(" | ").forEach(r => {
+          const trimmed = r.trim();
           if (trimmed) remark2Set.add(trimmed);
         });
       }
     }
 
-    mergedLead.notes = deduplicateSegments(Array.from(notesSet)).join(" | ");
-    mergedLead.remark_1 = deduplicateSegments(Array.from(remark1Set)).join(" | ");
-    mergedLead.remark_2 = deduplicateSegments(Array.from(remark2Set)).join(" | ");
+    mergedLead.notes = Array.from(notesSet).join(" | ");
+    mergedLead.remark_1 = Array.from(remark1Set).join(" | ");
+    mergedLead.remark_2 = Array.from(remark2Set).join(" | ");
     mergedLead.updated_at = new Date().toISOString();
 
     mergedLeadsList.push(mergedLead);

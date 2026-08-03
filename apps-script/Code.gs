@@ -8,7 +8,7 @@
  *      - Execute as: Me
  *      - Who has access: Anyone
  *   3. Copy the deployment URL and paste into the dashboard Settings.
- *   Current deployment: https://script.google.com/macros/s/AKfycbxf2PZZ13u1SeUb4s-Zd4Ew1n7ruM57Q2o2TM9I5RGwSvIPlBXMia-_YvY62g4Zkk_j/exec
+ *   Current deployment (v7 — 3 Aug 2026): https://script.google.com/macros/s/AKfycbz-jP5TnOgJeuC8IdBZnuAuw_RMIZeIz3XSH00ebO9k_LwhL9e0fu1dTxMuH9AQQEjO/exec
  *
  * Sheet columns (row 1 = header):
  *   A: Timestamp | B: Name | C: Email | D: Phone | E: Source | F: Notes | G: Status
