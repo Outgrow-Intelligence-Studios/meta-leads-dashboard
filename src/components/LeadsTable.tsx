@@ -828,7 +828,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Ad Source</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Status</Table.Head>
                 <Table.Head className="px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Region</Table.Head>
-                <Table.Head className="px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Owner</Table.Head>
+                <Table.Head className="w-[160px] min-w-[160px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Owner</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Followup</Table.Head>
                 <Table.Head className="w-[100px] bg-[#101828] px-2 text-right">{""}</Table.Head>
               </Table.Header>
@@ -984,7 +984,7 @@ function LeadRow({
       <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
         <div className="text-xs text-secondary truncate">{lead.location || "\u2014"}</div>
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 w-[160px] min-w-[160px]", getCellBgClass(isSelected, false))}>
         <select
           value={lead.sales_person || ""}
           onChange={(e) => onCrmFieldSave(lead, { sales_person: e.target.value }, "sales_person", "Owner updated.")}
