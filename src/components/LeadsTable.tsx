@@ -826,7 +826,7 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Phone</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Source</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Ad Source</Table.Head>
-                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Status</Table.Head>
+                <Table.Head className="w-[130px] min-w-[130px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Status</Table.Head>
                 <Table.Head className="px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Region</Table.Head>
                 <Table.Head className="w-[160px] min-w-[160px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Owner</Table.Head>
                 <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Followup</Table.Head>
@@ -967,7 +967,7 @@ function LeadRow({
           <span className="text-xs text-secondary block text-center">—</span>
         )}
       </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
+      <Table.Cell className={cx("align-middle py-2 px-2 w-[130px] min-w-[130px]", getCellBgClass(isSelected, false))}>
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
