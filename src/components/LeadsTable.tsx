@@ -1154,6 +1154,75 @@ function ColumnResizeHandle({
   );
 }
 
+function RequiredActionIndicator({
+  message,
+  variant = "warning",
+}: {
+  message: string;
+  variant?: "warning" | "danger" | "info";
+}) {
+  const colors = {
+    warning: {
+      bg: "bg-amber-500",
+      ring: "ring-amber-500/40",
+      border: "border-amber-400",
+      text: "text-amber-400",
+      pulse: "bg-amber-400",
+    },
+    danger: {
+      bg: "bg-rose-500",
+      ring: "ring-rose-500/40",
+      border: "border-rose-400",
+      text: "text-rose-400",
+      pulse: "bg-rose-400",
+    },
+    info: {
+      bg: "bg-blue-500",
+      ring: "ring-blue-500/40",
+      border: "border-blue-400",
+      text: "text-blue-400",
+      pulse: "bg-blue-400",
+    },
+  }[variant];
+
+  return (
+    <div
+      role="tooltip"
+      aria-label={message}
+      className="relative inline-flex items-center justify-center shrink-0 cursor-help group/act ml-1"
+    >
+      <span className="relative flex h-3.5 w-3.5 items-center justify-center">
+        <span
+          className={cx(
+            "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+            colors.pulse
+          )}
+        />
+        <span
+          className={cx(
+            "relative inline-flex items-center justify-center rounded-full h-3.5 w-3.5 text-[9px] font-black text-white shadow-xs ring-2",
+            colors.bg,
+            colors.ring
+          )}
+        >
+          !
+        </span>
+      </span>
+
+      {/* Floating tooltip */}
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/act:flex flex-col items-center z-50 min-w-[190px] max-w-[240px]">
+        <div className="rounded-lg bg-[#0c111d] text-white px-2.5 py-1.5 text-[11px] font-medium shadow-2xl border border-white/15 text-center leading-tight whitespace-normal">
+          <div className={cx("flex items-center justify-center gap-1 mb-0.5 font-bold text-[9.5px] uppercase tracking-wider", colors.text)}>
+            <span>Action Required</span>
+          </div>
+          {message}
+        </div>
+        <div className="w-2 h-2 -mt-1 rotate-45 bg-[#0c111d] border-r border-b border-white/15" />
+      </div>
+    </div>
+  );
+}
+
 function LeadRow({
   lead,
   isSelected,
@@ -1173,6 +1242,10 @@ function LeadRow({
   onCopy: (lead: Lead) => void;
   onOpenDetails: (lead: Lead) => void;
 }) {
+  const isOwnerNeeded = (!lead.sales_person || lead.sales_person === "Unassigned") && lead.status === "New";
+  const isFollowupNeededContacted = !lead.follow_up && lead.status === "Contacted";
+  const isFollowupNeededHot = !lead.follow_up && lead.status === "Hot";
+
   return (
     <tr className={cx("group h-11 transition-colors align-middle", getRowBgClass(isSelected))}>
       <td className={cx("px-2 py-2 text-center align-middle", getCellBgClass(isSelected, false))}>
@@ -1244,21 +1317,54 @@ function LeadRow({
         </span>
       </td>
       <td className={cx("px-2 py-1.5 align-middle", getCellBgClass(isSelected, false))}>
-        <select
-          value={lead.sales_person || ""}
-          onChange={(e) => onCrmFieldSave(lead, { sales_person: e.target.value }, "sales_person", "Owner updated.")}
-          className="cursor-pointer rounded-md border border-secondary bg-primary px-2 py-1 text-[11px] font-medium shadow-xs outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 w-full text-secondary truncate"
-        >
-          <option value="">Unassigned</option>
-          {owners.map((o) => (
-            <option key={o} value={o}>{o}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-1 w-full">
+          <select
+            value={lead.sales_person || ""}
+            onChange={(e) => onCrmFieldSave(lead, { sales_person: e.target.value }, "sales_person", "Owner updated.")}
+            className={cx(
+              "cursor-pointer rounded-md border px-2 py-1 text-[11px] font-medium shadow-xs outline-none transition-all focus:ring-2 flex-1 min-w-0 truncate",
+              isOwnerNeeded
+                ? "border-amber-400 bg-amber-50/40 text-amber-900 focus:border-amber-500 focus:ring-amber-500/20 font-medium"
+                : "border-secondary bg-primary text-secondary focus:border-brand focus:ring-brand/20"
+            )}
+          >
+            <option value="">Unassigned</option>
+            {owners.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+          {isOwnerNeeded && (
+            <RequiredActionIndicator
+              message="New lead needs an owner assigned."
+              variant="warning"
+            />
+          )}
+        </div>
       </td>
-      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))} title={lead.follow_up ? formatShortDate(lead.follow_up) : undefined}>
-        <span className="text-[11px] font-mono text-secondary truncate block">
-          {lead.follow_up ? formatShortDate(lead.follow_up) : "\u2014"}
-        </span>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))}>
+        <div className="flex items-center justify-between gap-1 w-full min-w-0">
+          <span
+            className={cx(
+              "text-[11px] font-mono truncate block",
+              lead.follow_up ? "text-secondary" : "text-tertiary"
+            )}
+            title={lead.follow_up ? formatShortDate(lead.follow_up) : undefined}
+          >
+            {lead.follow_up ? formatShortDate(lead.follow_up) : "\u2014"}
+          </span>
+          {isFollowupNeededContacted && (
+            <RequiredActionIndicator
+              message="Lead is Contacted. Please schedule the next follow-up date."
+              variant="warning"
+            />
+          )}
+          {isFollowupNeededHot && (
+            <RequiredActionIndicator
+              message="Hot lead! Schedule a follow-up date immediately."
+              variant="danger"
+            />
+          )}
+        </div>
       </td>
       <td className={cx("px-2 py-2 text-right align-middle", getCellBgClass(isSelected, false))}>
         <Button
@@ -1498,7 +1604,15 @@ function LeadDetailsDrawer({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-secondary block mb-1">Owner</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-secondary">Owner</label>
+                {(!draft.sales_person || draft.sales_person === "Unassigned") && lead.status === "New" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md ring-1 ring-amber-500/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                    Action Needed: Assign Owner
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <select
                   value={draft.sales_person}
@@ -1507,10 +1621,13 @@ function LeadDetailsDrawer({
                     setDraft((prev) => ({ ...prev, sales_person: val }));
                     onCrmFieldSave(lead, { sales_person: val }, "sales_person", "Owner updated.");
                   }}
-                  className={CELL_INPUT_CLASS}
+                  className={cx(
+                    CELL_INPUT_CLASS,
+                    (!draft.sales_person || draft.sales_person === "Unassigned") && lead.status === "New" && "border-amber-400 ring-2 ring-amber-500/20"
+                  )}
                 >
                   <option value="">Unassigned</option>
-          {owners.map((o) => (
+                  {owners.map((o) => (
                     <option key={o} value={o}>{o}</option>
                   ))}
                 </select>
@@ -1519,13 +1636,30 @@ function LeadDetailsDrawer({
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-secondary block mb-1">Next Follow-Up</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-secondary">Next Follow-Up</label>
+                {!lead.follow_up && lead.status === "Contacted" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md ring-1 ring-amber-500/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                    Action Needed: Schedule Date
+                  </span>
+                )}
+                {!lead.follow_up && lead.status === "Hot" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md ring-1 ring-rose-500/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
+                    Hot Lead: Set Follow-Up Now
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type="date"
                   value={lead.follow_up || ""}
                   onChange={(e) => onFollowUpChange(lead.id, e.target.value)}
-                  className={CELL_INPUT_CLASS}
+                  className={cx(
+                    CELL_INPUT_CLASS,
+                    !lead.follow_up && (lead.status === "Contacted" || lead.status === "Hot") && "border-amber-400 ring-2 ring-amber-500/20"
+                  )}
                 />
                 {saving === "follow_up" && <span className="absolute right-2 top-2 text-[10px] text-brand">saving...</span>}
               </div>
