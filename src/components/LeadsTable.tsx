@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, SearchLg, Trash01, X } from "@untitledui/icons";
+import { ArrowDown, ArrowUp, CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, RefreshCw01, SearchLg, Trash01, X } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
 import { Button } from "@/components/base/buttons/button";
@@ -7,10 +7,11 @@ import { CheckboxBase } from "@/components/base/checkbox/checkbox";
 import { Input } from "@/components/base/input/input";
 import { Select } from "@/components/base/select/select";
 import { SelectItem } from "@/components/base/select/select-item";
-import { Table, TableCard } from "@/components/application/table/table";
+import { TableCard } from "@/components/application/table/table";
 import { TextArea } from "@/components/base/textarea/textarea";
 import { EmptyState } from "@/components/application/empty-state/empty-state";
 import { cx } from "@/utils/cx";
+import { useTableColumnResize, type ColumnKey, DEFAULT_COLUMN_WIDTHS } from "../hooks/useTableColumnResize";
 
 type Props = {
   leads: Lead[];
@@ -83,40 +84,56 @@ function SkeletonBar({ className }: { className?: string }) {
   return <div className={cx("h-3.5 rounded bg-secondary/80 animate-pulse", className)} />;
 }
 
-function LeadsTableSkeleton() {
+function LeadsTableSkeleton({ columnWidths = DEFAULT_COLUMN_WIDTHS }: { columnWidths?: Record<ColumnKey, number> }) {
   return (
-    <div className="overflow-hidden w-full bg-primary">
-      <div className="min-w-0 w-full">
-        <div className="grid grid-cols-[40px_100px_1fr_110px_110px_110px_1fr_1fr_110px_100px] border-b border-secondary bg-[#101828] px-2 py-3">
-          {["", "Created", "Lead", "Phone", "Source", "Status", "Region", "Owner", "Followup", ""].map((label, index) => (
-            <div key={`${label}-${index}`} className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white">
-              {label}
-            </div>
+    <div className="overflow-hidden w-full bg-primary border-t border-secondary/60">
+      <table className="w-full table-fixed border-collapse text-left">
+        <colgroup>
+          <col style={{ width: columnWidths.select }} />
+          <col style={{ width: columnWidths.created_at }} />
+          <col style={{ width: columnWidths.name }} />
+          <col style={{ width: columnWidths.phone }} />
+          <col style={{ width: columnWidths.source }} />
+          <col style={{ width: columnWidths.ad_source }} />
+          <col style={{ width: columnWidths.status }} />
+          <col style={{ width: columnWidths.location }} />
+          <col style={{ width: columnWidths.sales_person }} />
+          <col style={{ width: columnWidths.follow_up }} />
+          <col style={{ width: columnWidths.actions }} />
+        </colgroup>
+        <thead>
+          <tr className="bg-[#0c111d] text-slate-300 border-b border-[#1e293b] h-10">
+            <th className="px-2 py-2 text-center"><SkeletonBar className="h-4 w-4 mx-auto rounded" /></th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Created</th>
+            <th className="px-2.5 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Lead</th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Phone</th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Source</th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Ad Source</th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Status</th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Region</th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Owner</th>
+            <th className="px-2 py-2 text-[10.5px] font-semibold uppercase tracking-[0.06em]">Followup</th>
+            <th className="px-2 py-2 text-right"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-secondary/60">
+          {Array.from({ length: 8 }).map((_, rowIndex) => (
+            <tr key={rowIndex} className="h-11 border-b border-secondary/60">
+              <td className="px-2 py-2 text-center"><SkeletonBar className="h-4 w-4 mx-auto rounded" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="w-16" /></td>
+              <td className="px-2.5 py-2"><SkeletonBar className="w-28" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="w-20" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="w-16 rounded-md" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="w-18 rounded-md" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="h-7 w-20 rounded-md" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="w-16" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="h-7 w-24 rounded-md" /></td>
+              <td className="px-2 py-2"><SkeletonBar className="w-14" /></td>
+              <td className="px-2 py-2 text-right"><SkeletonBar className="h-6 w-14 rounded ml-auto" /></td>
+            </tr>
           ))}
-        </div>
-        {Array.from({ length: 6 }).map((_, rowIndex) => (
-          <div
-            key={rowIndex}
-            className="grid grid-cols-[40px_100px_1fr_110px_110px_110px_1fr_1fr_110px_100px] items-center border-b border-secondary px-2 py-4"
-          >
-            <SkeletonBar className="mt-1 h-5 w-5 rounded-md" />
-            <div className="space-y-1.5">
-              <SkeletonBar className="w-16" />
-              <SkeletonBar className="w-20" />
-            </div>
-            <SkeletonBar className="w-24" />
-            <SkeletonBar className="w-20" />
-            <SkeletonBar className="h-6 w-16 rounded-md" />
-            <SkeletonBar className="h-8 w-24 rounded-lg" />
-            <SkeletonBar className="w-20" />
-            <SkeletonBar className="w-20" />
-            <SkeletonBar className="w-16" />
-            <div className="flex justify-end">
-              <SkeletonBar className="h-7 w-20 rounded-lg" />
-            </div>
-          </div>
-        ))}
-      </div>
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -243,11 +260,19 @@ function PaginationControls({
 export default function LeadsTable({ leads, onChange, loading }: Props) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<"created_at" | "name">("created_at");
+  const [sortKey, setSortKey] = useState<string>("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [savingLead, setSavingLead] = useState<Record<string, string | null>>({});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  const {
+    columnWidths,
+    resizingCol,
+    onMouseDownResize,
+    resetColumnWidth,
+    resetAllWidths,
+  } = useTableColumnResize();
 
   useEffect(() => {
     setPage(1);
@@ -316,15 +341,31 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
       let cmp = 0;
       if (sortKey === "created_at") {
         cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      } else {
+      } else if (sortKey === "name") {
         cmp = (a.name || "").localeCompare(b.name || "");
+      } else if (sortKey === "phone") {
+        cmp = (a.phone || "").localeCompare(b.phone || "");
+      } else if (sortKey === "source") {
+        cmp = (a.source || "").localeCompare(b.source || "");
+      } else if (sortKey === "ad_source") {
+        cmp = (a.ad_source || "").localeCompare(b.ad_source || "");
+      } else if (sortKey === "status") {
+        cmp = (a.status || "").localeCompare(b.status || "");
+      } else if (sortKey === "location") {
+        cmp = (a.location || "").localeCompare(b.location || "");
+      } else if (sortKey === "sales_person") {
+        cmp = (a.sales_person || "").localeCompare(b.sales_person || "");
+      } else if (sortKey === "follow_up") {
+        const d1 = a.follow_up ? new Date(a.follow_up).getTime() : 0;
+        const d2 = b.follow_up ? new Date(b.follow_up).getTime() : 0;
+        cmp = d1 - d2;
       }
       return sortDir === "asc" ? cmp : -cmp;
     });
     return out;
   }, [leads, query, statusFilter, sortKey, sortDir]);
 
-  function toggleSort(key: "created_at" | "name") {
+  function toggleSort(key: string) {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else {
       setSortKey(key);
@@ -635,6 +676,15 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
                   <SelectItem key={s} id={s} label={s} />
                 ))}
               </Select>
+              <Button
+                size="sm"
+                color="secondary"
+                iconLeading={RefreshCw01}
+                onPress={resetAllWidths}
+                title="Reset table column widths to default"
+              >
+                Reset Columns
+              </Button>
               <Button size="sm" color="primary" iconLeading={Plus} onPress={() => setShowAddForm(!showAddForm)}>
                 Add Lead
               </Button>
@@ -800,54 +850,219 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
           />
         )}
 
-        {/* Table — fluid screen width, no horizontal scroll */}
+        {/* Table — fluid screen width, no horizontal scroll, Excel-style resizable columns */}
         {!loading && filtered.length > 0 && (
-          <div className="overflow-hidden w-full bg-primary">
-            <Table size="sm" aria-label="Leads table" className="w-full table-striped-columns">
-              <Table.Header className="bg-[#101828] text-white border-b border-[#101828]">
-                <Table.Head className="w-10 bg-[#101828] px-2 text-white">
-                  <SelectionToggle
-                    label="Select all visible leads"
-                    checked={allVisibleSelected}
-                    indeterminate={!allVisibleSelected && someVisibleSelected}
-                    onChange={toggleVisibleSelection}
-                  />
-                </Table.Head>
-                <Table.Head className="w-[100px] bg-[#101828] px-2 text-white">
-                  <button onClick={() => toggleSort("created_at")} className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-white cursor-pointer">
-                    Created
-                  </button>
-                </Table.Head>
-                <Table.Head isRowHeader className="bg-[#101828] px-2 text-white">
-                  <button onClick={() => toggleSort("name")} className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-white cursor-pointer">
-                    Lead
-                  </button>
-                </Table.Head>
-                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Phone</Table.Head>
-                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Source</Table.Head>
-                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Ad Source</Table.Head>
-                <Table.Head className="w-[130px] min-w-[130px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Status</Table.Head>
-                <Table.Head className="w-[110px] min-w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Region</Table.Head>
-                <Table.Head className="w-[160px] min-w-[160px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Owner</Table.Head>
-                <Table.Head className="w-[110px] px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-white bg-[#101828]">Followup</Table.Head>
-                <Table.Head className="w-[100px] bg-[#101828] px-2 text-right">{""}</Table.Head>
-              </Table.Header>
-              <Table.Body>
-                {paginatedLeads.map((lead) => (
-                  <LeadRow
-                    key={lead.id}
-                    lead={lead}
-                    isSelected={selectedLeadIds.has(lead.id)}
-                    owners={OWNERS}
-                    onSelectionChange={toggleLeadSelection}
-                    onStatusChange={changeStatus}
-                    onCrmFieldSave={persistCrmFields}
-                    onCopy={handleCopyLead}
-                    onOpenDetails={setSelectedLeadForDetails}
-                  />
-                ))}
-              </Table.Body>
-            </Table>
+          <div className="w-full overflow-hidden bg-primary border-t border-secondary/60">
+            <div className="w-full overflow-x-auto">
+              <table className="w-full table-fixed border-collapse text-left select-text">
+                <colgroup>
+                  <col style={{ width: columnWidths.select }} />
+                  <col style={{ width: columnWidths.created_at }} />
+                  <col style={{ width: columnWidths.name }} />
+                  <col style={{ width: columnWidths.phone }} />
+                  <col style={{ width: columnWidths.source }} />
+                  <col style={{ width: columnWidths.ad_source }} />
+                  <col style={{ width: columnWidths.status }} />
+                  <col style={{ width: columnWidths.location }} />
+                  <col style={{ width: columnWidths.sales_person }} />
+                  <col style={{ width: columnWidths.follow_up }} />
+                  <col style={{ width: columnWidths.actions }} />
+                </colgroup>
+                <thead>
+                  <tr className="bg-[#0c111d] text-slate-200 border-b border-[#1e293b] h-10 select-none">
+                    <th className="relative px-2 py-2 text-center border-r border-white/10">
+                      <SelectionToggle
+                        label="Select all visible leads"
+                        checked={allVisibleSelected}
+                        indeterminate={!allVisibleSelected && someVisibleSelected}
+                        onChange={toggleVisibleSelection}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("created_at")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Created</span>
+                        {sortKey === "created_at" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "created_at"}
+                        onMouseDown={(e) => onMouseDownResize("created_at", e)}
+                        onDoubleClick={() => resetColumnWidth("created_at")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("name")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Lead</span>
+                        {sortKey === "name" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "name"}
+                        onMouseDown={(e) => onMouseDownResize("name", e)}
+                        onDoubleClick={() => resetColumnWidth("name")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("phone")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Phone</span>
+                        {sortKey === "phone" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "phone"}
+                        onMouseDown={(e) => onMouseDownResize("phone", e)}
+                        onDoubleClick={() => resetColumnWidth("phone")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("source")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Source</span>
+                        {sortKey === "source" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "source"}
+                        onMouseDown={(e) => onMouseDownResize("source", e)}
+                        onDoubleClick={() => resetColumnWidth("source")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("ad_source")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Ad Source</span>
+                        {sortKey === "ad_source" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "ad_source"}
+                        onMouseDown={(e) => onMouseDownResize("ad_source", e)}
+                        onDoubleClick={() => resetColumnWidth("ad_source")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("status")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Status</span>
+                        {sortKey === "status" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "status"}
+                        onMouseDown={(e) => onMouseDownResize("status", e)}
+                        onDoubleClick={() => resetColumnWidth("status")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("location")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Region</span>
+                        {sortKey === "location" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "location"}
+                        onMouseDown={(e) => onMouseDownResize("location", e)}
+                        onDoubleClick={() => resetColumnWidth("location")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("sales_person")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Owner</span>
+                        {sortKey === "sales_person" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "sales_person"}
+                        onMouseDown={(e) => onMouseDownResize("sales_person", e)}
+                        onDoubleClick={() => resetColumnWidth("sales_person")}
+                      />
+                    </th>
+
+                    <th className="relative px-2.5 py-2 border-r border-white/10 group">
+                      <button
+                        type="button"
+                        onClick={() => toggleSort("follow_up")}
+                        className="flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-slate-200 hover:text-white cursor-pointer w-full text-left truncate"
+                      >
+                        <span>Followup</span>
+                        {sortKey === "follow_up" && (
+                          sortDir === "asc" ? <ArrowUp className="size-3 text-[#1877F2] shrink-0" /> : <ArrowDown className="size-3 text-[#1877F2] shrink-0" />
+                        )}
+                      </button>
+                      <ColumnResizeHandle
+                        isResizing={resizingCol === "follow_up"}
+                        onMouseDown={(e) => onMouseDownResize("follow_up", e)}
+                        onDoubleClick={() => resetColumnWidth("follow_up")}
+                      />
+                    </th>
+
+                    <th className="relative px-2 py-2 text-right">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-secondary/60">
+                  {paginatedLeads.map((lead) => (
+                    <LeadRow
+                      key={lead.id}
+                      lead={lead}
+                      isSelected={selectedLeadIds.has(lead.id)}
+                      owners={OWNERS}
+                      onSelectionChange={toggleLeadSelection}
+                      onStatusChange={changeStatus}
+                      onCrmFieldSave={persistCrmFields}
+                      onCopy={handleCopyLead}
+                      onOpenDetails={setSelectedLeadForDetails}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -906,6 +1121,39 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
   );
 }
 
+function ColumnResizeHandle({
+  isResizing,
+  onMouseDown,
+  onDoubleClick,
+}: {
+  isResizing: boolean;
+  onMouseDown: (e: React.MouseEvent) => void;
+  onDoubleClick: () => void;
+}) {
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      className={cx(
+        "absolute right-0 top-0 bottom-0 w-2.5 flex items-center justify-center cursor-col-resize select-none touch-none z-20 group/handle",
+        isResizing && "z-30"
+      )}
+      onMouseDown={onMouseDown}
+      onDoubleClick={onDoubleClick}
+      title="Drag to resize column (double-click to reset)"
+    >
+      <div
+        className={cx(
+          "w-[1px] h-full transition-colors",
+          isResizing
+            ? "!w-[2px] bg-[#1877F2] shadow-[0_0_8px_#1877F2]"
+            : "bg-white/15 group-hover/handle:bg-[#1877F2] group-hover/handle:w-[2px]"
+        )}
+      />
+    </div>
+  );
+}
+
 function LeadRow({
   lead,
   isSelected,
@@ -926,53 +1174,62 @@ function LeadRow({
   onOpenDetails: (lead: Lead) => void;
 }) {
   return (
-    <Table.Row className={cx("group h-auto align-middle", getRowBgClass(isSelected))}>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
+    <tr className={cx("group h-11 transition-colors align-middle", getRowBgClass(isSelected))}>
+      <td className={cx("px-2 py-2 text-center align-middle", getCellBgClass(isSelected, false))}>
         <SelectionToggle
           label={`Select ${lead.name || "lead"}`}
           checked={isSelected}
           onChange={(checked) => onSelectionChange(lead.id, checked)}
         />
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-xs font-medium text-primary whitespace-nowrap">{formatShortDate(lead.created_at)}</div>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
+      </td>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))} title={formatShortDate(lead.created_at)}>
+        <span className="text-[11px] font-mono text-tertiary whitespace-nowrap block truncate">
+          {formatShortDate(lead.created_at)}
+        </span>
+      </td>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))}>
         <div className="flex items-center justify-between gap-1.5 min-w-0">
-          <div className="text-xs font-semibold text-primary truncate">{lead.name || "\u2014"}</div>
+          <span className="text-xs font-semibold text-primary truncate block" title={lead.name || undefined}>
+            {lead.name || "\u2014"}
+          </span>
           <button
+            type="button"
             onClick={() => onCopy(lead)}
             title="Copy lead details to clipboard"
-            className="p-1 rounded text-tertiary hover:text-[#ed1c24] hover:bg-[#ed1c24]/5 transition-all cursor-pointer shrink-0"
+            className="p-1 rounded text-tertiary hover:text-brand hover:bg-brand/10 transition-all opacity-0 group-hover:opacity-100 cursor-pointer shrink-0"
           >
             <Copy01 className="size-3.5" />
           </button>
         </div>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-xs text-secondary truncate">{lead.phone || "\u2014"}</div>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <span className={cx(SOURCE_PILL_CLASS, "truncate max-w-full block text-center")}>{lead.source || "\u2014"}</span>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
+      </td>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))} title={lead.phone || undefined}>
+        <span className="text-[11.5px] font-mono text-secondary truncate block">
+          {lead.phone || "\u2014"}
+        </span>
+      </td>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))} title={lead.source || undefined}>
+        <span className={cx(SOURCE_PILL_CLASS, "truncate max-w-full block text-center text-[10.5px]")}>
+          {lead.source || "\u2014"}
+        </span>
+      </td>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))} title={lead.ad_source || undefined}>
         {lead.ad_source ? (
           <span className={cx(
-            "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset truncate max-w-full text-center block",
+            "inline-flex items-center justify-center gap-1 rounded-md px-2 py-0.5 text-[10.5px] font-medium ring-1 ring-inset truncate max-w-full text-center block",
             getAdSourceClass(lead.ad_source)
           )}>
             {lead.ad_source}
           </span>
         ) : (
-          <span className="text-xs text-secondary block text-center">—</span>
+          <span className="text-xs text-tertiary block text-center">—</span>
         )}
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 w-[130px] min-w-[130px]", getCellBgClass(isSelected, false))}>
+      </td>
+      <td className={cx("px-2 py-1.5 align-middle", getCellBgClass(isSelected, false))}>
         <select
           value={lead.status || "New"}
           onChange={(e) => onStatusChange(lead.id, e.target.value)}
           className={cx(
-            "cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium shadow-xs outline-none transition-all focus:ring-4 focus:ring-brand/12 w-full",
+            "cursor-pointer rounded-md border px-2 py-1 text-[11px] font-semibold shadow-xs outline-none transition-all focus:ring-2 focus:ring-brand/20 w-full truncate",
             getStatusClass(lead.status),
           )}
         >
@@ -980,37 +1237,39 @@ function LeadRow({
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 w-[110px] min-w-[110px]", getCellBgClass(isSelected, false))}>
-        <div className="text-xs text-secondary truncate">{lead.location || "\u2014"}</div>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 w-[160px] min-w-[160px]", getCellBgClass(isSelected, false))}>
+      </td>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))} title={lead.location || undefined}>
+        <span className="text-xs text-secondary truncate block">
+          {lead.location || "\u2014"}
+        </span>
+      </td>
+      <td className={cx("px-2 py-1.5 align-middle", getCellBgClass(isSelected, false))}>
         <select
           value={lead.sales_person || ""}
           onChange={(e) => onCrmFieldSave(lead, { sales_person: e.target.value }, "sales_person", "Owner updated.")}
-          className="cursor-pointer rounded-lg border border-secondary bg-primary px-2.5 py-1 text-xs font-medium shadow-xs outline-none transition-all focus:border-brand focus:ring-4 focus:ring-brand/12 w-full text-secondary"
+          className="cursor-pointer rounded-md border border-secondary bg-primary px-2 py-1 text-[11px] font-medium shadow-xs outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 w-full text-secondary truncate"
         >
           <option value="">Unassigned</option>
           {owners.map((o) => (
             <option key={o} value={o}>{o}</option>
           ))}
         </select>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2", getCellBgClass(isSelected, false))}>
-        <div className="text-xs text-secondary truncate">
+      </td>
+      <td className={cx("px-2.5 py-2 align-middle", getCellBgClass(isSelected, false))} title={lead.follow_up ? formatShortDate(lead.follow_up) : undefined}>
+        <span className="text-[11px] font-mono text-secondary truncate block">
           {lead.follow_up ? formatShortDate(lead.follow_up) : "\u2014"}
-        </div>
-      </Table.Cell>
-      <Table.Cell className={cx("align-middle py-2 px-2 text-right", getCellBgClass(isSelected, false))}>
+        </span>
+      </td>
+      <td className={cx("px-2 py-2 text-right align-middle", getCellBgClass(isSelected, false))}>
         <Button
           size="xs"
           color="secondary"
           onPress={() => onOpenDetails(lead)}
         >
-          View Details
+          Details
         </Button>
-      </Table.Cell>
-    </Table.Row>
+      </td>
+    </tr>
   );
 }
 
