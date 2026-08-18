@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Plus, RefreshCw01, SearchLg, Trash01, X } from "@untitledui/icons";
+import { ArrowDown, ArrowUp, Calendar, CheckCircle, Copy01, ChevronLeft, ChevronRight, Download01, Inbox01, Plus, RefreshCw01, SearchLg, Target01, Trash01, Users01, X, Zap } from "@untitledui/icons";
 import type { Lead } from "../lib/api";
 import { addLead, deleteLead, updateLead } from "../lib/api";
 import { Button } from "@/components/base/buttons/button";
@@ -65,6 +65,17 @@ function formatShortDate(iso: string | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function calculateDelta(current: number, previous: number): { value: string; tone: "up" | "down" | "neutral" } {
+  if (previous === 0) {
+    return { value: current > 0 ? `+${current}` : "0", tone: current > 0 ? "up" : "neutral" };
+  }
+  const change = ((current - previous) / previous) * 100;
+  const abs = Math.abs(change);
+  if (change > 0) return { value: `+${abs.toFixed(1)}%`, tone: "up" };
+  if (change < 0) return { value: `-${abs.toFixed(1)}%`, tone: "down" };
+  return { value: "0%", tone: "neutral" };
 }
 
 const getRowBgClass = (selected: boolean) =>
@@ -316,12 +327,69 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
     });
   }, [leads]);
 
+  const kpiStats = useMemo(() => {
+    const now = Date.now();
+    const DAY = 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = now - 7 * DAY;
+    const fourteenDaysAgo = now - 14 * DAY;
+
+    const last7 = leads.filter((l) => new Date(l.created_at).getTime() >= sevenDaysAgo);
+    const prev7 = leads.filter((l) => {
+      const t = new Date(l.created_at).getTime();
+      return t < sevenDaysAgo && t >= fourteenDaysAgo;
+    });
+
+    const last7Count = last7.length;
+    const last7Hot = last7.filter((l) => l.status === "Hot").length;
+    const prev7Hot = prev7.filter((l) => l.status === "Hot").length;
+    const last7Contacted = last7.filter((l) => l.status === "Contacted").length;
+    const prev7Contacted = prev7.filter((l) => l.status === "Contacted").length;
+
+    const contactedCount = leads.filter((l) => l.status === "Contacted").length;
+    const wonCount = leads.filter((l) => l.status === "Won").length;
+    const conversionRate = leads.length > 0 ? (wonCount / leads.length) * 100 : 0;
+
+    const todayStr = new Date().toDateString();
+    const followUp1Count = leads.filter(
+      (l) => l.follow_up && new Date(l.follow_up).toDateString() === todayStr
+    ).length;
+    const followUp2Count = leads.filter(
+      (l) => l.follow_up_2 && new Date(l.follow_up_2).toDateString() === todayStr
+    ).length;
+
+    const hotCount = leads.filter((l) => l.status === "Hot").length;
+
+    return {
+      total: leads.length,
+      last7Count,
+      contactedCount,
+      last7Contacted,
+      prev7Contacted,
+      wonCount,
+      conversionRate,
+      followUp1Count,
+      followUp2Count,
+      hotCount,
+      last7Hot,
+      prev7Hot,
+    };
+  }, [leads]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const todayStr = new Date().toDateString();
     let out = leads.filter((l) => {
       if (statusFilter === "today") {
         const d = new Date(l.created_at);
-        return d.toDateString() === new Date().toDateString();
+        return d.toDateString() === todayStr;
+      }
+      if (statusFilter === "fu1_today") {
+        if (!l.follow_up) return false;
+        return new Date(l.follow_up).toDateString() === todayStr;
+      }
+      if (statusFilter === "fu2_today") {
+        if (!l.follow_up_2) return false;
+        return new Date(l.follow_up_2).toDateString() === todayStr;
       }
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (!q) return true;
@@ -647,50 +715,235 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
 
   return (
     <>
-      <TableCard.Root className="overflow-hidden bg-primary ring-1 ring-secondary shadow-sm">
-        <TableCard.Header
-          title="All leads"
-          badge={filtered.length}
-          contentTrailing={
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                size="sm"
-                aria-label="Search leads"
-                placeholder="Search leads..."
-                icon={SearchLg}
-                value={query}
-                onChange={(value) => setQuery(value)}
-                className="w-64"
-              />
-              <Select
-                size="sm"
-                aria-label="Filter by status"
-                placeholder="Status"
-                selectedKey={statusFilter === "all" ? undefined : statusFilter}
-                onSelectionChange={(key) => setStatusFilter(key as string)}
-                className="w-36"
-              >
-                <SelectItem id="today" label="Today" />
-                <SelectItem id="all" label="All statuses" />
-                {STATUSES.map((s) => (
-                  <SelectItem key={s} id={s} label={s} />
-                ))}
-              </Select>
-              <Button
-                size="sm"
-                color="secondary"
-                iconLeading={RefreshCw01}
-                onPress={resetAllWidths}
-                title="Reset table column widths to default"
-              >
-                Reset Columns
-              </Button>
-              <Button size="sm" color="primary" iconLeading={Plus} onPress={() => setShowAddForm(!showAddForm)}>
-                Add Lead
-              </Button>
+      <TableCard.Root className="overflow-hidden bg-primary ring-1 ring-secondary shadow-sm rounded-xl">
+        {/* Connected Interactive KPI Ribbon */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 divide-y sm:divide-y-0 divide-x-0 sm:divide-x divide-secondary/70 border-b border-secondary/70 bg-secondary/15">
+          {/* Total Leads */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={cx(
+              "flex flex-col justify-between p-3.5 text-left transition-all cursor-pointer hover:bg-secondary/40",
+              statusFilter === "all" ? "bg-primary shadow-xs ring-1 ring-inset ring-brand/30 border-b-2 border-brand" : ""
+            )}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[11px] font-semibold text-tertiary uppercase tracking-wider">Total Leads</span>
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-primary">
+                <Users01 className="size-3.5 text-tertiary" />
+              </div>
             </div>
-          }
-        />
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="text-xl font-bold tracking-tight text-primary">
+                {kpiStats.total.toLocaleString()}
+              </span>
+              <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-semibold bg-utility-green-50 text-utility-green-700 ring-1 ring-inset ring-utility-green-100">
+                +{kpiStats.last7Count} this week
+              </span>
+            </div>
+          </button>
+
+          {/* Contacted */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === "Contacted" ? "all" : "Contacted")}
+            className={cx(
+              "flex flex-col justify-between p-3.5 text-left transition-all cursor-pointer hover:bg-secondary/40",
+              statusFilter === "Contacted" ? "bg-primary shadow-xs ring-1 ring-inset ring-utility-yellow-500/40 border-b-2 border-utility-yellow-500" : ""
+            )}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[11px] font-semibold text-tertiary uppercase tracking-wider">Contacted</span>
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-utility-yellow-50 text-utility-yellow-700">
+                <Inbox01 className="size-3.5" />
+              </div>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="text-xl font-bold tracking-tight text-primary">
+                {kpiStats.contactedCount.toLocaleString()}
+              </span>
+              {(() => {
+                const d = calculateDelta(kpiStats.last7Contacted, kpiStats.prev7Contacted);
+                return (
+                  <span className={cx(
+                    "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-semibold ring-1 ring-inset",
+                    d.tone === "up" ? "bg-utility-green-50 text-utility-green-700 ring-utility-green-100" : d.tone === "down" ? "bg-utility-red-50 text-utility-red-700 ring-utility-red-100" : "bg-utility-neutral-50 text-utility-neutral-600 ring-utility-neutral-200"
+                  )}>
+                    {d.value} vs prev
+                  </span>
+                );
+              })()}
+            </div>
+          </button>
+
+          {/* Converted (Won) */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === "Won" ? "all" : "Won")}
+            className={cx(
+              "flex flex-col justify-between p-3.5 text-left transition-all cursor-pointer hover:bg-secondary/40",
+              statusFilter === "Won" ? "bg-primary shadow-xs ring-1 ring-inset ring-utility-green-500/40 border-b-2 border-utility-green-500" : ""
+            )}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[11px] font-semibold text-tertiary uppercase tracking-wider">Converted (Won)</span>
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-utility-green-50 text-utility-green-700">
+                <Target01 className="size-3.5" />
+              </div>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="text-xl font-bold tracking-tight text-primary">
+                {kpiStats.wonCount.toLocaleString()}
+              </span>
+              <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-semibold bg-utility-green-50 text-utility-green-700 ring-1 ring-inset ring-utility-green-100">
+                {kpiStats.conversionRate.toFixed(1)}% rate
+              </span>
+            </div>
+          </button>
+
+          {/* Follow Up 1 Today */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === "fu1_today" ? "all" : "fu1_today")}
+            className={cx(
+              "flex flex-col justify-between p-3.5 text-left transition-all cursor-pointer hover:bg-secondary/40",
+              statusFilter === "fu1_today" ? "bg-primary shadow-xs ring-1 ring-inset ring-brand/40 border-b-2 border-brand" : ""
+            )}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[11px] font-semibold text-tertiary uppercase tracking-wider">Follow Up 1 Today</span>
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-primary">
+                <Calendar className="size-3.5 text-tertiary" />
+              </div>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="text-xl font-bold tracking-tight text-primary">
+                {kpiStats.followUp1Count.toLocaleString()}
+              </span>
+              <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-semibold bg-utility-neutral-50 text-utility-neutral-700 ring-1 ring-inset ring-utility-neutral-200">
+                Action due
+              </span>
+            </div>
+          </button>
+
+          {/* Follow Up 2 Today */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === "fu2_today" ? "all" : "fu2_today")}
+            className={cx(
+              "flex flex-col justify-between p-3.5 text-left transition-all cursor-pointer hover:bg-secondary/40",
+              statusFilter === "fu2_today" ? "bg-primary shadow-xs ring-1 ring-inset ring-brand/40 border-b-2 border-brand" : ""
+            )}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[11px] font-semibold text-tertiary uppercase tracking-wider">Follow Up 2 Today</span>
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-primary">
+                <Calendar className="size-3.5 text-tertiary" />
+              </div>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="text-xl font-bold tracking-tight text-primary">
+                {kpiStats.followUp2Count.toLocaleString()}
+              </span>
+              <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-semibold bg-utility-neutral-50 text-utility-neutral-700 ring-1 ring-inset ring-utility-neutral-200">
+                Final action
+              </span>
+            </div>
+          </button>
+
+          {/* Hot Leads */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter(statusFilter === "Hot" ? "all" : "Hot")}
+            className={cx(
+              "flex flex-col justify-between p-3.5 text-left transition-all cursor-pointer hover:bg-secondary/40",
+              statusFilter === "Hot" ? "bg-primary shadow-xs ring-1 ring-inset ring-utility-red-500/40 border-b-2 border-utility-red-500" : ""
+            )}
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[11px] font-semibold text-tertiary uppercase tracking-wider">Hot Leads</span>
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-utility-red-50 text-utility-red-600">
+                <Zap className="size-3.5" />
+              </div>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="text-xl font-bold tracking-tight text-primary">
+                {kpiStats.hotCount.toLocaleString()}
+              </span>
+              {(() => {
+                const d = calculateDelta(kpiStats.last7Hot, kpiStats.prev7Hot);
+                return (
+                  <span className={cx(
+                    "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.2 text-[10px] font-semibold ring-1 ring-inset",
+                    d.tone === "up" ? "bg-utility-red-50 text-utility-red-700 ring-utility-red-100" : "bg-utility-neutral-50 text-utility-neutral-600 ring-utility-neutral-200"
+                  )}>
+                    {d.value} vs prev
+                  </span>
+                );
+              })()}
+            </div>
+          </button>
+        </div>
+
+        {/* Streamlined Action Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 bg-primary border-b border-secondary/70">
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm font-bold text-primary">All leads</span>
+            <span className="inline-flex items-center justify-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary ring-1 ring-inset ring-secondary">
+              {filtered.length}
+            </span>
+            {statusFilter !== "all" && (
+              <button
+                onClick={() => setStatusFilter("all")}
+                className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand ring-1 ring-inset ring-brand/20 hover:bg-brand-100 transition-colors cursor-pointer"
+                title="Clear filter"
+              >
+                <span>Filter: {statusFilter === "fu1_today" ? "Follow Up 1 Today" : statusFilter === "fu2_today" ? "Follow Up 2 Today" : statusFilter}</span>
+                <X className="size-3" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              size="sm"
+              aria-label="Search leads"
+              placeholder="Search leads..."
+              icon={SearchLg}
+              value={query}
+              onChange={(value) => setQuery(value)}
+              className="w-56"
+            />
+            <Select
+              size="sm"
+              aria-label="Filter by status"
+              placeholder="Status"
+              selectedKey={statusFilter === "all" ? undefined : statusFilter}
+              onSelectionChange={(key) => setStatusFilter(key as string)}
+              className="w-40"
+            >
+              <SelectItem id="today" label="Created Today" />
+              <SelectItem id="fu1_today" label="Follow Up 1 Today" />
+              <SelectItem id="fu2_today" label="Follow Up 2 Today" />
+              <SelectItem id="all" label="All statuses" />
+              {STATUSES.map((s) => (
+                <SelectItem key={s} id={s} label={s} />
+              ))}
+            </Select>
+            <Button
+              size="sm"
+              color="secondary"
+              iconLeading={RefreshCw01}
+              onPress={resetAllWidths}
+              title="Reset table column widths to default"
+            >
+              Reset Columns
+            </Button>
+            <Button size="sm" color="primary" iconLeading={Plus} onPress={() => setShowAddForm(!showAddForm)}>
+              Add Lead
+            </Button>
+          </div>
+        </div>
 
         {selectedLeadIds.size > 0 && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-primary/95 backdrop-blur-md border border-secondary shadow-2xl rounded-2xl px-6 py-3.5 animate-in slide-in-from-bottom-5 duration-300 ring-1 ring-black/5">
@@ -832,22 +1085,6 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
               </EmptyState.Description>
             </EmptyState.Content>
           </EmptyState>
-        )}
-
-        {/* Pagination controls top */}
-        {!loading && filtered.length > 0 && (
-          <PaginationControls
-            page={page}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setPage(1);
-            }}
-            position="top"
-          />
         )}
 
         {/* Table — fluid screen width, no horizontal scroll, Excel-style resizable columns */}

@@ -106,14 +106,11 @@ export default function App() {
     pageContent = <SettingsPage />;
   } else {
     pageContent = (
-      <>
-        <StatsCards leads={leads} />
-        <LeadsTable
-          leads={leads}
-          onChange={(updater) => setLeads(updater)}
-          loading={loading}
-        />
-      </>
+      <LeadsTable
+        leads={leads}
+        onChange={(updater) => setLeads(updater)}
+        loading={loading}
+      />
     );
   }
 
