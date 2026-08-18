@@ -497,6 +497,8 @@ export type CampaignAnalytics = {
   unique_clicks: number;
   total_bounces: number;
   total_complaints: number;
+  // Derived from campaign_events (not in analytics view)
+  total_replies: number;
 };
 
 export type CampaignEvent = {
@@ -517,7 +519,23 @@ export async function fetchCampaignAnalytics(): Promise<CampaignAnalytics[]> {
     .order("started_at", { ascending: false, nullsFirst: false });
 
   if (error) throw new Error(error.message);
-  return (data || []) as CampaignAnalytics[];
+  const campaigns = (data || []) as Omit<CampaignAnalytics, "total_replies">[];
+
+  // Fetch all reply events in a single batch query and merge counts
+  const { data: replyData } = await supabase
+    .from("campaign_events")
+    .select("campaign_id")
+    .eq("event_type", "reply");
+
+  const replyCounts: Record<string, number> = {};
+  (replyData || []).forEach((r: { campaign_id: string }) => {
+    replyCounts[r.campaign_id] = (replyCounts[r.campaign_id] || 0) + 1;
+  });
+
+  return campaigns.map((c) => ({
+    ...c,
+    total_replies: replyCounts[c.id] || 0,
+  })) as CampaignAnalytics[];
 }
 
 export async function fetchCampaignEvents(campaignId: string): Promise<CampaignEvent[]> {

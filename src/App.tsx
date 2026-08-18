@@ -9,7 +9,7 @@ import EmailCampaignsPage from "./pages/EmailCampaignsPage";
 import AudiencePage from "./pages/AudiencePage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
-import { fetchLeads, getScriptUrl, type Lead } from "./lib/api";
+import { fetchLeads, fetchCampaignAnalytics, getScriptUrl, type Lead, type CampaignAnalytics } from "./lib/api";
 import { Button } from "@/components/base/buttons/button";
 import { ChevronRight, RefreshCw01, Settings01, X } from "@untitledui/icons";
 import oiLogo from "./assets/oi-logo.png";
@@ -22,6 +22,7 @@ function getPageFromHash(): string {
 
 export default function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignAnalytics[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -41,8 +42,12 @@ export default function App() {
     setError(null);
     setLoading(true);
     try {
-      const data = await fetchLeads();
+      const [data, campaignData] = await Promise.all([
+        fetchLeads(),
+        fetchCampaignAnalytics(),
+      ]);
       setLeads(data);
+      setCampaigns(campaignData);
       setLastSync(new Date());
       setConnectionToast({ visible: true, count: data.length });
     } catch (e) {
@@ -88,7 +93,7 @@ export default function App() {
       </div>
     );
   } else if (currentPage === "dashboard") {
-    pageContent = <DashboardPage leads={leads} />;
+    pageContent = <DashboardPage leads={leads} campaigns={campaigns} />;
   } else if (currentPage === "email-campaigns") {
     pageContent = <EmailCampaignsPage />;
   } else if (currentPage === "campaigns") {

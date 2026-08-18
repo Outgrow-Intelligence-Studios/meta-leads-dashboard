@@ -1,4 +1,17 @@
 import { useEffect, useState, useMemo } from "react";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import { 
   Activity, 
   AlertCircle, 
@@ -80,19 +93,21 @@ export default function EmailCampaignsPage() {
     let totalSent = 0;
     let totalDelivered = 0;
     let totalOpens = 0;
-    let totalClicks = 0;
+    let totalReplies = 0;
     let totalBounces = 0;
 
     campaigns.forEach((c) => {
       totalSent += c.actual_sends || 0;
       totalDelivered += c.delivered || 0;
       totalOpens += c.unique_opens || 0;
-      totalClicks += c.unique_clicks || 0;
+      totalReplies += c.total_replies || 0;
       totalBounces += c.total_bounces || 0;
     });
 
-    const openRate = totalDelivered > 0 ? (totalOpens / totalDelivered) * 100 : 0;
-    const clickRate = totalDelivered > 0 ? (totalClicks / totalDelivered) * 100 : 0;
+    // Fall back to totalSent when delivered is not tracked by the provider
+    const openBase = totalDelivered > 0 ? totalDelivered : totalSent;
+    const openRate = openBase > 0 ? (totalOpens / openBase) * 100 : 0;
+    const replyRate = openBase > 0 ? (totalReplies / openBase) * 100 : 0;
     const bounceRate = totalSent > 0 ? (totalBounces / totalSent) * 100 : 0;
     const deliveryRate = 99.9;
 
@@ -100,7 +115,8 @@ export default function EmailCampaignsPage() {
       totalSent,
       deliveryRate,
       openRate,
-      clickRate,
+      replyRate,
+      totalReplies,
       bounceRate,
     };
   }, [campaigns]);
@@ -118,11 +134,9 @@ export default function EmailCampaignsPage() {
     });
   }, [campaigns, search, statusFilter]);
 
-  // Chart Data Preparation: Daily aggregate stats for last 14 days
-  const chartPoints = useMemo(() => {
+  // Area chart: daily sent + opens (last 15 campaign dates)
+  const areaChartData = useMemo(() => {
     const dailyData: Record<string, { sent: number; opens: number }> = {};
-    
-    // Sort campaigns oldest to newest to plot correctly
     const sorted = [...campaigns]
       .filter((c) => c.started_at)
       .sort((a, b) => new Date(a.started_at!).getTime() - new Date(b.started_at!).getTime());
@@ -132,60 +146,60 @@ export default function EmailCampaignsPage() {
         month: "short",
         day: "numeric",
       });
-      if (!dailyData[dateStr]) {
-        dailyData[dateStr] = { sent: 0, opens: 0 };
-      }
+      if (!dailyData[dateStr]) dailyData[dateStr] = { sent: 0, opens: 0 };
       dailyData[dateStr].sent += c.actual_sends || 0;
       dailyData[dateStr].opens += c.unique_opens || 0;
     });
 
-    // Take the last 15 unique active campaign dates
-    return Object.entries(dailyData).slice(-15);
+    return Object.entries(dailyData)
+      .slice(-15)
+      .map(([date, d]) => ({ date, Sent: d.sent, Opens: d.opens }));
   }, [campaigns]);
 
-  // SVG Chart rendering helper
-  const svgChart = useMemo(() => {
-    if (chartPoints.length < 2) return null;
+  // Bar chart: open rate per campaign (last 12 sent campaigns)
+  const openRateBarData = useMemo(() => {
+    return [...campaigns]
+      .filter((c) => c.started_at && (c.actual_sends || 0) > 0)
+      .sort((a, b) => new Date(b.started_at!).getTime() - new Date(a.started_at!).getTime())
+      .slice(0, 12)
+      .reverse()
+      .map((c) => {
+        const base = (c.delivered || 0) > 0 ? c.delivered : (c.actual_sends || 0);
+        const openRate = base > 0 ? parseFloat(((c.unique_opens / base) * 100).toFixed(1)) : 0;
+        const label = new Date(c.started_at!).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return { label, "Open Rate": openRate, name: c.name };
+      });
+  }, [campaigns]);
 
-    const width = 1200;
-    const height = 200;
-    const paddingLeft = 40;
-    const paddingRight = 20;
-    const paddingTop = 20;
-    const paddingBottom = 30;
+  // Custom tooltip for area chart
+  const AreaTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="rounded-xl border border-secondary bg-primary shadow-lg p-3 text-xs min-w-[130px]">
+        <p className="font-semibold text-primary mb-2">{label}</p>
+        {payload.map((p: any, i: number) => (
+          <div key={i} className="flex items-center gap-2 mt-1">
+            <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: p.color }} />
+            <span className="text-tertiary">{p.name}:</span>
+            <span className="font-semibold text-primary">{p.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
-    const chartWidth = width - paddingLeft - paddingRight;
-    const chartHeight = height - paddingTop - paddingBottom;
-
-    const maxSent = Math.max(...chartPoints.map(([_, d]) => d.sent), 10);
-
-    const points = chartPoints.map(([date, data], idx) => {
-      const x = paddingLeft + (idx / (chartPoints.length - 1)) * chartWidth;
-      // Invert Y coordinate since SVG (0,0) is top-left
-      const y = paddingTop + chartHeight - (data.sent / maxSent) * chartHeight;
-      const yOpen = paddingTop + chartHeight - (data.opens / maxSent) * chartHeight;
-      return { x, y, yOpen, date, sent: data.sent, opens: data.opens };
-    });
-
-    // Generate path descriptions
-    const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-    const areaPath = `${linePath} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`;
-
-    const openLinePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.yOpen}`).join(" ");
-
-    return {
-      width,
-      height,
-      paddingLeft,
-      paddingTop,
-      chartHeight,
-      maxSent,
-      points,
-      linePath,
-      areaPath,
-      openLinePath,
-    };
-  }, [chartPoints]);
+  // Custom tooltip for bar chart
+  const BarTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const campaign = openRateBarData.find((d) => d.label === label);
+    return (
+      <div className="rounded-xl border border-secondary bg-primary shadow-lg p-3 text-xs max-w-[200px]">
+        {campaign && <p className="font-semibold text-primary mb-1 truncate">{campaign.name}</p>}
+        <p className="text-tertiary">{label}</p>
+        <p className="mt-1">Open Rate: <span className="font-bold text-primary">{payload[0].value}%</span></p>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-300">
@@ -212,7 +226,7 @@ export default function EmailCampaignsPage() {
           { label: "Total Sent", value: stats.totalSent.toLocaleString(), desc: "All-time sends", icon: Mail01, color: "blue" },
           { label: "Delivery Rate", value: `${stats.deliveryRate.toFixed(1)}%`, desc: "Successful handoffs", icon: CheckCircle, color: "success" },
           { label: "Open Rate (Unique)", value: `${stats.openRate.toFixed(1)}%`, desc: "Delivered → Opened", icon: Activity, color: "brand" },
-          { label: "Click Rate", value: `${stats.clickRate.toFixed(1)}%`, desc: "Delivered → Clicked", icon: BarChart01, color: "warning" },
+          { label: "Reply Rate", value: `${stats.replyRate.toFixed(1)}%`, desc: `${stats.totalReplies} replies tracked`, icon: BarChart01, color: "warning" },
           { label: "Bounce Rate", value: `${stats.bounceRate.toFixed(1)}%`, desc: "Undelivered emails", icon: AlertCircle, color: "error" },
         ].map((m, idx) => {
           const Icon = m.icon;
@@ -231,65 +245,97 @@ export default function EmailCampaignsPage() {
         })}
       </div>
 
-      {/* SVG Chart Panel */}
-      {svgChart && (
+      {/* ── Recharts: Area chart — Sent vs Opens over time ── */}
+      {areaChartData.length >= 2 && (
         <div className="rounded-xl border border-secondary bg-primary p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-secondary pb-4">
-            <div>
-              <h3 className="text-sm font-semibold text-primary">Daily Campaign Performance</h3>
-              <p className="text-xs text-tertiary mt-0.5">Volume of emails sent vs unique opens</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-medium">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-4 rounded bg-brand/20 border border-brand block" />
-                <span className="text-secondary">Sent Volume</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-4 rounded bg-[#12b76a] block" />
-                <span className="text-secondary">Unique Opens</span>
-              </div>
-            </div>
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-primary">Daily Campaign Performance</h3>
+            <p className="text-xs text-tertiary mt-0.5">Volume of emails sent vs unique opens per campaign date</p>
           </div>
-          
-          <div className="mt-4 overflow-x-auto">
-            <svg 
-              viewBox={`0 0 ${svgChart.width} ${svgChart.height}`} 
-              className="w-full h-[200px] overflow-visible"
-            >
-              {/* Grid Lines */}
-              <line x1={svgChart.paddingLeft} y1={svgChart.paddingTop} x2={svgChart.width - 20} y2={svgChart.paddingTop} stroke="var(--color-border-secondary)" strokeDasharray="3 3" />
-              <line x1={svgChart.paddingLeft} y1={svgChart.paddingTop + svgChart.chartHeight / 2} x2={svgChart.width - 20} y2={svgChart.paddingTop + svgChart.chartHeight / 2} stroke="var(--color-border-secondary)" strokeDasharray="3 3" />
-              <line x1={svgChart.paddingLeft} y1={svgChart.paddingTop + svgChart.chartHeight} x2={svgChart.width - 20} y2={svgChart.paddingTop + svgChart.chartHeight} stroke="var(--color-border-secondary)" />
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={areaChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="grad-sent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="grad-opens" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="var(--color-border-secondary)" strokeDasharray="3 3" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: "var(--color-text-tertiary)" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "var(--color-text-tertiary)" }}
+                axisLine={false}
+                tickLine={false}
+                allowDecimals={false}
+              />
+              <Tooltip content={<AreaTooltip />} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+              <Area
+                type="monotone"
+                dataKey="Sent"
+                stroke="#6366f1"
+                strokeWidth={2}
+                fill="url(#grad-sent)"
+                dot={{ r: 3, fill: "#6366f1", strokeWidth: 0 }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+              />
+              <Area
+                type="monotone"
+                dataKey="Opens"
+                stroke="#10b981"
+                strokeWidth={2}
+                fill="url(#grad-opens)"
+                dot={{ r: 3, fill: "#10b981", strokeWidth: 0 }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
-              {/* Y Axis Labels */}
-              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + 4} textAnchor="end" className="text-[10px] fill-neutral-500 font-mono">{svgChart.maxSent}</text>
-              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + svgChart.chartHeight / 2 + 4} textAnchor="end" className="text-[10px] fill-neutral-500 font-mono">{Math.round(svgChart.maxSent / 2)}</text>
-              <text x={svgChart.paddingLeft - 8} y={svgChart.paddingTop + svgChart.chartHeight + 4} textAnchor="end" className="text-[10px] fill-neutral-500 font-mono">0</text>
-
-              {/* Area & Line for Sent */}
-              <path d={svgChart.areaPath} fill="var(--color-brand-secondary)" className="opacity-40" />
-              <path d={svgChart.linePath} fill="none" stroke="var(--color-brand)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-
-              {/* Line for Opens */}
-              <path d={svgChart.openLinePath} fill="none" stroke="#12b76a" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
-
-              {/* Points & Hover Indicators */}
-              {svgChart.points.map((p, idx) => (
-                <g key={idx}>
-                  {/* Vertical hover guide */}
-                  <line x1={p.x} y1={svgChart.paddingTop} x2={p.x} y2={svgChart.paddingTop + svgChart.chartHeight} stroke="var(--color-border-secondary)" strokeWidth={1} strokeDasharray="2 2" className="opacity-40 hover:opacity-100 transition-opacity" />
-                  
-                  {/* Sent dots */}
-                  <circle cx={p.x} cy={p.y} r={4} fill="var(--color-brand)" stroke="#fff" strokeWidth={1.5} />
-                  {/* Opens dots */}
-                  <circle cx={p.x} cy={p.yOpen} r={4} fill="#12b76a" stroke="#fff" strokeWidth={1.5} />
-                  
-                  {/* X axis labels */}
-                  <text x={p.x} y={svgChart.paddingTop + svgChart.chartHeight + 16} textAnchor="middle" className="text-[10px] fill-neutral-500 font-medium">{p.date}</text>
-                </g>
-              ))}
-            </svg>
+      {/* ── Recharts: Bar chart — Open Rate per Campaign ── */}
+      {openRateBarData.length >= 2 && (
+        <div className="rounded-xl border border-secondary bg-primary p-5 shadow-xs">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-primary">Open Rate per Campaign</h3>
+            <p className="text-xs text-tertiary mt-0.5">Last {openRateBarData.length} sent campaigns — % of recipients who opened</p>
           </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={openRateBarData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }} barSize={28}>
+              <CartesianGrid vertical={false} stroke="var(--color-border-secondary)" strokeDasharray="3 3" />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10, fill: "var(--color-text-tertiary)" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "var(--color-text-tertiary)" }}
+                axisLine={false}
+                tickLine={false}
+                unit="%"
+                domain={[0, (dataMax: number) => Math.ceil(Math.max(dataMax, 5) * 1.2)]}
+              />
+              <Tooltip content={<BarTooltip />} cursor={{ fill: "var(--color-bg-secondary)", opacity: 0.5 }} />
+              <Bar dataKey="Open Rate" radius={[4, 4, 0, 0]}>
+                {openRateBarData.map((_, index) => (
+                  <Cell
+                    key={index}
+                    fill={`hsl(${240 + index * 15}, 70%, ${55 + index * 2}%)`}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
 
@@ -346,13 +392,15 @@ export default function EmailCampaignsPage() {
                 <Table.Head>Status</Table.Head>
                 <Table.Head>Sent</Table.Head>
                 <Table.Head>Open Rate</Table.Head>
-                <Table.Head>Click Rate</Table.Head>
+                <Table.Head>Reply Rate</Table.Head>
                 <Table.Head>Bounce Rate</Table.Head>
               </Table.Header>
               <Table.Body>
                 {filteredCampaigns.map((c) => {
-                  const oRate = c.delivered > 0 ? (c.unique_opens / c.delivered) * 100 : 0;
-                  const cRate = c.delivered > 0 ? (c.unique_clicks / c.delivered) * 100 : 0;
+                  // Use delivered when available, fall back to actual_sends (provider may not report delivered separately)
+                  const openBase = (c.delivered || 0) > 0 ? c.delivered : (c.actual_sends || 0);
+                  const oRate = openBase > 0 ? (c.unique_opens / openBase) * 100 : 0;
+                  const rRate = openBase > 0 ? ((c.total_replies || 0) / openBase) * 100 : 0;
                   const bRate = c.actual_sends > 0 ? (c.total_bounces / c.actual_sends) * 100 : 0;
                   const formattedDate = c.started_at
                     ? new Date(c.started_at).toLocaleDateString("en-US", {
@@ -405,8 +453,8 @@ export default function EmailCampaignsPage() {
                       </Table.Cell>
                       <Table.Cell>
                         <div>
-                          <span className="text-secondary font-medium text-xs">{cRate.toFixed(1)}%</span>
-                          <span className="text-[10px] text-tertiary block mt-0.5">{c.unique_clicks} clicks</span>
+                          <span className="text-secondary font-medium text-xs">{rRate.toFixed(1)}%</span>
+                          <span className="text-[10px] text-tertiary block mt-0.5">{c.total_replies || 0} replies</span>
                         </div>
                       </Table.Cell>
                       <Table.Cell>
@@ -450,24 +498,30 @@ export default function EmailCampaignsPage() {
             {/* Campaign Summary Grid */}
             <div className="p-5 border-b border-secondary bg-secondary/10 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               <div>
-                <span className="text-[10px] font-bold text-tertiary uppercase">Delivered</span>
-                <div className="text-lg font-bold text-primary mt-1">{selectedCampaign.delivered}</div>
+                <span className="text-[10px] font-bold text-tertiary uppercase">Sent</span>
+                <div className="text-lg font-bold text-primary mt-1">{selectedCampaign.actual_sends}</div>
+                {selectedCampaign.delivered > 0 && selectedCampaign.delivered !== selectedCampaign.actual_sends && (
+                  <span className="text-[10px] text-tertiary">{selectedCampaign.delivered} delivered</span>
+                )}
               </div>
               <div>
                 <span className="text-[10px] font-bold text-tertiary uppercase">Unique Opens</span>
                 <div className="text-lg font-bold text-utility-green-700 mt-1">
                   {selectedCampaign.unique_opens}
                   <span className="text-xs font-normal text-tertiary ml-1">
-                    ({selectedCampaign.delivered > 0 ? ((selectedCampaign.unique_opens / selectedCampaign.delivered) * 100).toFixed(1) : 0}%)
+                    {(() => {
+                      const base = (selectedCampaign.delivered || 0) > 0 ? selectedCampaign.delivered : selectedCampaign.actual_sends;
+                      return base > 0 ? `(${((selectedCampaign.unique_opens / base) * 100).toFixed(1)}%)` : "";
+                    })()}
                   </span>
                 </div>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-tertiary uppercase">Unique Clicks</span>
-                <div className="text-lg font-bold text-utility-yellow-700 mt-1">
-                  {selectedCampaign.unique_clicks}
+                <span className="text-[10px] font-bold text-tertiary uppercase">Replies</span>
+                <div className="text-lg font-bold text-utility-purple-700 mt-1">
+                  {selectedCampaign.total_replies || 0}
                   <span className="text-xs font-normal text-tertiary ml-1">
-                    ({selectedCampaign.delivered > 0 ? ((selectedCampaign.unique_clicks / selectedCampaign.delivered) * 100).toFixed(1) : 0}%)
+                    ({selectedCampaign.delivered > 0 ? (((selectedCampaign.total_replies || 0) / selectedCampaign.delivered) * 100).toFixed(1) : 0}%)
                   </span>
                 </div>
               </div>
@@ -570,6 +624,7 @@ export default function EmailCampaignsPage() {
                             <Badge
                               color={
                                 e.event_type === "open" ? "success" :
+                                e.event_type === "reply" ? "brand" :
                                 e.event_type === "click" ? "warning" :
                                 e.event_type === "bounce" ? "error" :
                                 e.event_type === "delivery" ? "blue" :
