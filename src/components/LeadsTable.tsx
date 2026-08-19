@@ -935,7 +935,6 @@ export default function LeadsTable({ leads, onChange, loading }: Props) {
               color="secondary"
               iconLeading={RefreshCw01}
               onPress={resetAllWidths}
-              title="Reset table column widths to default"
             >
               Reset Columns
             </Button>

@@ -15,8 +15,6 @@ import {
   Cell,
   AreaChart,
   Area,
-  LineChart,
-  Line,
 } from "recharts";
 
 // ─── Color Palette ──────────────────────────────────────────────────────────
@@ -94,7 +92,7 @@ function DonutChart({ data, title, subtitle, centerLabel, centerValue }: {
   centerLabel?: string;
   centerValue?: string | number;
 }) {
-  const RADIAN = Math.PI / 180;
+
   return (
     <ChartCard title={title} subtitle={subtitle}>
       <div className="flex items-center gap-4">

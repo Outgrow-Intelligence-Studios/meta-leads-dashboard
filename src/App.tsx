@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar";
-import StatsCards from "./components/StatsCards";
 import LeadsTable from "./components/LeadsTable";
 import LeadNotifications from "./components/LeadNotifications";
 import DashboardPage from "./pages/DashboardPage";
