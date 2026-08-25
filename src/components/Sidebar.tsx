@@ -5,6 +5,7 @@ import { cx } from "@/utils/cx";
 import columbusLogo from "@/assets/columbus-logo.png";
 import { Dialog, Modal, ModalOverlay } from "@/components/application/modals/modal";
 import { Button } from "@/components/base/buttons/button";
+import { supabase } from "@/lib/supabase";
 
 const FAVICON_URL = "https://www.columbus-clean.com/wp-content/uploads/2025/09/columbus-favicon-c-3.png";
 
@@ -89,11 +90,20 @@ export default function Sidebar({
   onCollapsedChange: (v: boolean) => void;
 }) {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const hash = window.location.hash.replace("#", "") || "/leads";
 
-  const handleSignOut = useCallback(() => {
-    // Perform sign out logic here
-    window.location.reload();
+  const handleSignOut = useCallback(async () => {
+    try {
+      setIsSigningOut(true);
+      await supabase.auth.signOut();
+      setShowSignOutConfirm(false);
+      window.location.hash = "";
+    } catch (err) {
+      console.error("Sign out error:", err);
+    } finally {
+      setIsSigningOut(false);
+    }
   }, []);
 
   return (
@@ -220,14 +230,16 @@ export default function Sidebar({
                 <Button
                   className="flex-1"
                   color="secondary"
-                  onClick={() => setShowSignOutConfirm(false)}
+                  isDisabled={isSigningOut}
+                  onPress={() => setShowSignOutConfirm(false)}
                 >
                   Cancel
                 </Button>
                 <Button
                   className="flex-1"
                   color="primary-destructive"
-                  onClick={handleSignOut}
+                  isLoading={isSigningOut}
+                  onPress={handleSignOut}
                 >
                   Yes, Sign out
                 </Button>
