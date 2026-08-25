@@ -3,6 +3,7 @@ export const ALLOWED_EMAILS = [
   'sj@columbus-clean.in',
   'info@columbus-clean.in',
   'columbuscleanindia@gmail.com',
+  'husainbadri5@gmail.com',
 ]
 
 export function isAuthorizedEmail(email: string | null | undefined) {
