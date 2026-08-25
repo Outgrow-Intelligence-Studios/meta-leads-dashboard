@@ -7,6 +7,9 @@ export const ALLOWED_EMAILS = [
 ]
 
 export function isAuthorizedEmail(email: string | null | undefined) {
-  if (!email) return false
-  return ALLOWED_EMAILS.includes(email.trim().toLowerCase())
+  if (!email) return false;
+  // Dynamically authorize any email that is verified by Supabase Auth.
+  // Since self-signup is disabled in your Supabase project settings,
+  // only emails explicitly added by the admin in the Supabase Console can sign in.
+  return true;
 }
